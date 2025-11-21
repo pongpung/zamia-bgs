@@ -1,0 +1,576 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"> 
+    <title>Interactive MCQ Quiz (BGS - State & Citizenship)</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Custom styles to enhance aesthetics and scalability */
+        body {
+            /* Fallback font */
+            font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif;
+            background-color: #f3f4f6; /* Light gray background for a clean feel (Tailwind: gray-100) */
+            /* Ensure smooth scaling of text on large/high-DPI screens */
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+        
+        /* Typography adjustments using viewport units for large screens */
+        @media screen and (min-width: 1024px) {
+            .scale-text-lg {
+                /* Font size scales between 1.5rem (desktop default) and 2vw (for very large displays) */
+                font-size: min(1.5rem, 2vw);
+            }
+        }
+
+        .card-shadow {
+            /* Slightly softer, modern shadow */
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.05), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        }
+        .option-button {
+            transition: all 0.2s ease-in-out;
+            transform-origin: center;
+        }
+        .option-button:hover:not(.disabled) {
+            transform: translateY(-2px); /* Slight lift on hover */
+            box-shadow: 0 5px 15px -5px rgba(0, 0, 0, 0.1);
+        }
+        /* State Indicators: Enhanced contrast and clarity */
+        .correct {
+            background-color: #d1fae5; /* Green 100 */
+            border-color: #059669; /* Green 600 */
+            color: #065f46; /* Green 800 text */
+            font-weight: 600;
+        }
+        .incorrect {
+            background-color: #fee2e2; /* Red 100 */
+            border-color: #ef4444; /* Red 500 */
+            color: #991b1b; /* Red 800 text */
+            font-weight: 600;
+        }
+        .option-button:focus-visible { /* A11y: Better focus style */
+            outline: 2px solid #4f46e5;
+            outline-offset: 2px;
+        }
+    </style>
+</head>
+<body class="min-h-screen flex items-center justify-center p-4">
+
+    <div id="quiz-container" class="w-full max-w-2xl bg-white rounded-2xl card-shadow p-6 sm:p-10">
+        <h1 class="text-2xl sm:text-3xl font-extrabold text-gray-900 mb-6 text-center tracking-tight">Citizenship Knowledge Quiz (40 Questions)</h1>
+
+        <div class="mb-8">
+            <div class="flex justify-between text-xs sm:text-sm font-medium text-gray-500 mb-2">
+                <span id="progress-text" class="text-indigo-600 font-bold">Question 1 of 40</span>
+                <span id="score-text">Score: 0 Correct</span>
+            </div>
+            <div class="w-full bg-indigo-100 rounded-full h-2 sm:h-3">
+                <div id="progress-bar" class="bg-indigo-600 h-2 sm:h-3 rounded-full transition-all duration-500 ease-in-out shadow-lg" style="width: 0%"></div>
+            </div>
+        </div>
+
+        <div id="question-view" class="space-y-6 sm:space-y-8">
+            <div class="p-6 sm:p-8 bg-white border border-gray-200 rounded-xl shadow-lg transition-transform duration-300">
+                <p class="text-sm font-medium text-indigo-600 mb-2" id="question-number-text">Question 1</p>
+                <p id="question-text" class="text-lg sm:text-xl lg:scale-text-lg font-bold text-gray-800">Question loading...</p> 
+            </div>
+            
+            <div id="options-container" class="space-y-3 sm:space-y-4">
+                </div>
+
+            <div id="feedback-message" class="hidden p-3 sm:p-4 rounded-xl text-sm sm:text-base font-semibold transition-all duration-300 border"></div>
+
+            <div class="flex justify-between pt-4 sm:pt-6 border-t border-gray-100">
+                <button id="skip-button"
+                        class="px-3 py-2 sm:px-4 sm:py-2 text-xs sm:text-sm text-gray-600 font-semibold rounded-lg hover:text-indigo-600 transition duration-150 ease-in-out">
+                    Skip for now
+                </button>
+                <button id="next-button" 
+                        class="px-6 py-2 sm:px-8 sm:py-3 bg-indigo-600 text-white font-semibold rounded-xl shadow-lg hover:bg-indigo-700 disabled:opacity-50 transition duration-150 ease-in-out transform hover:scale-[1.01]"
+                        disabled>
+                    Next Question
+                </button>
+            </div>
+        </div>
+
+        <div id="dashboard-view" class="hidden p-0">
+            <h2 class="text-xl sm:text-2xl font-bold text-gray-800 mb-8 text-center border-b pb-4">Quiz Results: Detailed Summary</h2>
+            
+            <div class="grid grid-cols-2 gap-4 md:grid-cols-4 md:gap-6 text-center mb-10">
+                <div class="p-4 sm:p-5 bg-blue-50 rounded-xl shadow-md border border-blue-200">
+                    <p class="text-3xl sm:text-4xl font-extrabold text-blue-600" id="stat-total">0</p>
+                    <p class="text-xs sm:text-sm text-gray-600 mt-1">Total</p>
+                </div>
+                <div class="p-4 sm:p-5 bg-green-50 rounded-xl shadow-md border border-green-200">
+                    <p class="text-3xl sm:text-4xl font-extrabold text-green-600" id="stat-correct">0</p>
+                    <p class="text-xs sm:text-sm text-gray-600 mt-1">Correct</p>
+                </div>
+                <div class="p-4 sm:p-5 bg-red-50 rounded-xl shadow-md border border-red-200">
+                    <p class="text-3xl sm:text-4xl font-extrabold text-red-600" id="stat-incorrect">0</p>
+                    <p class="text-xs sm:text-sm text-gray-600 mt-1">Incorrect</p>
+                </div>
+                <div class="p-4 sm:p-5 bg-yellow-50 rounded-xl shadow-md border border-yellow-200">
+                    <p class="text-3xl sm:text-4xl font-extrabold text-yellow-600" id="stat-unanswered">0</p>
+                    <p class="text-xs sm:text-sm text-gray-600 mt-1">Skipped</p>
+                </div>
+            </div>
+
+            <div class="mt-8">
+                <h3 class="text-lg sm:text-xl font-bold text-gray-700 mb-4">Review Your Quiz</h3>
+                <div id="review-list" class="space-y-4">
+                    </div>
+            </div>
+
+            <button onclick="window.location.reload()" 
+                    class="mt-8 sm:mt-10 w-full px-8 py-3 sm:py-4 bg-indigo-600 text-white font-bold text-base sm:text-lg rounded-xl shadow-lg hover:bg-indigo-700 transition duration-200 ease-in-out transform hover:scale-[1.01]">
+                Restart Quiz
+            </button>
+        </div>
+    </div>
+
+    <script>
+        // --- Quiz Data Structure: 40 Non-redundant MCQs ---
+        const quizData = [
+            // Lesson 1: Concept of State (Q1-Q10)
+            {
+                question: "Which one of the following is considered the most important element required to form a state?",
+                options: ["Population", "Territory", "Government", "Sovereignty"],
+                correctAnswer: 3, 
+            },
+            {
+                question: "According to the text, what is the soul of a state?",
+                options: ["Territory", "Sovereignty", "Government", "Population"],
+                correctAnswer: 3,
+            },
+            {
+                question: "Which state element consists of water, land, and the sky over it?",
+                options: ["Government", "Territory", "Sovereignty", "Population"],
+                correctAnswer: 1,
+            },
+            {
+                question: "What is the approximate total population of China, as mentioned in the text?",
+                options: ["16 crore 98 lakh", "33 thousand 8 hundred", "32,87,263 square kilometers", "141 crore 7 lakh and 10 thousand"],
+                correctAnswer: 3,
+            },
+            {
+                question: "Which of the following countries is given as an example of having a very small population?",
+                options: ["China", "India", "Bangladesh", "San Marino"],
+                correctAnswer: 3,
+            },
+            {
+                question: "Which two city-states are mentioned as examples of small territorial area?",
+                options: ["Dhaka and London", "Singapore and Vatican City", "India and China", "Japan and France"],
+                correctAnswer: 1,
+            },
+            {
+                question: "The government performs which of the following functions?",
+                options: ["Giving commands to a foreign state", "Maintaining sovereignty", "Making law to maintain peace and order", "Allowing citizens to disregard laws"],
+                correctAnswer: 2,
+            },
+            {
+                question: "Which power allows the state to give any command and compel someone to carry out the order?",
+                options: ["Government's Authority", "Population's Will", "Sovereignty", "Territory's Boundary"],
+                correctAnswer: 2,
+            },
+            {
+                question: "Without any one of the four elements (Population, Territory, Government, Sovereignty), a state cannot be formed. This statement is:",
+                options: ["True", "False", "Partially True", "Applicable only to city states"],
+                correctAnswer: 0,
+            },
+            {
+                question: "What is the land area of Vatican City, as mentioned in the text?",
+                options: ["693 square kilometers", "1,47,570 square kilometers", "0.18 square kilometers", "32,87,263 square kilometers"],
+                correctAnswer: 2,
+            },
+
+            // Lesson 2: Bangladesh as a State (Q11-Q18)
+            {
+                question: "Bangladesh emerged as an independent and sovereign country on:",
+                options: ["26 March 1971", "16 December 1971", "14 August 1947", "21 February 1952"],
+                correctAnswer: 1,
+            },
+            {
+                question: "What is the form of government in Bangladesh?",
+                options: ["Presidential form of government", "Monarchy", "Cabinet form of government", "Military rule"],
+                correctAnswer: 2,
+            },
+            {
+                question: "What is the total area of Bangladesh?",
+                options: ["693 square kilometers", "1,47,570 square kilometers", "32,87,263 square kilometers", "16 crore 98 lakh square kilometers"],
+                correctAnswer: 1,
+            },
+            {
+                question: "What is the current population of Bangladesh, according to the 2022 census mentioned?",
+                options: ["Nearly eight billion", "141 crore 7 lakh", "16 crore 98 lakh 28 thousand 9 hundred and eleven", "33 thousand 8 hundred 60"],
+                correctAnswer: 2,
+            },
+            {
+                question: "Bangladesh ranks as the world's ___ largest populated country.",
+                options: ["Second", "Seventh", "Eighth", "Tenth"],
+                correctAnswer: 2,
+            },
+            {
+                question: "What bounds Bangladesh on the East?",
+                options: ["India and Myanmar", "West Bengal of India", "Bay of Bengal", "Asam and Meghalay of India"],
+                correctAnswer: 0,
+            },
+            {
+                question: "The government of Bangladesh is a democratic government because it is:",
+                options: ["Controlled by the army", "Elected by the people", "A cabinet form of government", "Free from foreign control"],
+                correctAnswer: 1,
+            },
+            {
+                question: "The sovereignty of Bangladesh ensures that no other country can:",
+                options: ["Do business with Bangladesh", "Interfere with its internal affairs", "Trade with its citizens", "Influence its culture"],
+                correctAnswer: 1,
+            },
+
+            // Lesson 3: Citizen and Concept of Citizenship (Q19-Q25)
+            {
+                question: "Who are called the citizens of a state?",
+                options: ["Temporary residents", "All inhabitants", "Foreigners living for service", "Permanent residents"],
+                correctAnswer: 3,
+            },
+            {
+                question: "In ancient times, the idea of state originated from the system of:",
+                options: ["Monarchy", "Republics", "City states", "Empires"],
+                correctAnswer: 2,
+            },
+            {
+                question: "Which of the following is NOT a feature of a modern citizen?",
+                options: ["Allegiance to the state", "Permanent membership of a state", "Ability to travel freely", "Enjoying political and social rights"],
+                correctAnswer: 2,
+            },
+            {
+                question: "The foreigners in a state can enjoy:",
+                options: ["Political rights only", "Social rights only", "Both social and political rights", "Neither social nor political rights"],
+                correctAnswer: 1,
+            },
+            {
+                question: "What is the identity of Bangladeshi citizens based on citizenship?",
+                options: ["Foreigner", "Resident", "Bangladeshi", "Permanent Member"],
+                correctAnswer: 2,
+            },
+            {
+                question: "A citizen is required to be loyal to the state and:",
+                options: ["Must only enjoy rights", "Must think of the welfare of the state", "Must be wealthy", "Must be educated"],
+                correctAnswer: 1,
+            },
+            {
+                question: "Why do foreigners live in a state besides its own inhabitants?",
+                options: ["To enjoy political rights", "For permanent residence", "For reasons like education, business, service", "To perform duties and responsibilities"],
+                correctAnswer: 2,
+            },
+
+            // Lesson 4: Methods of Acquiring Citizenship (Q26-Q35)
+            {
+                question: "What are the two main ways to acquire citizenship?",
+                options: ["By Allegiance and By Grant", "By Birth and By Residency", "By Birth and By Formal Grant", "By Soli and By Sanguinis"],
+                correctAnswer: 2,
+            },
+            {
+                question: "The principle of 'Jus Sanguinis' for acquiring citizenship is based on:",
+                options: ["Place of birth", "Parents' citizenship", "Length of residency", "Language proficiency"],
+                correctAnswer: 1,
+            },
+            {
+                question: "According to the principle of 'Jus Soli', a child is a citizen of the country where:",
+                options: ["Its parents are citizens", "Its parents were born", "The child is born", "The child takes asylum"],
+                correctAnswer: 2,
+            },
+            {
+                question: "If a child of Japanese parents is born in Bangladesh, he will be a citizen of Japan. This is an example of the principle of:",
+                options: ["Jus Soli", "Dual Citizenship", "Jus Sanguinis", "Formal Grant"],
+                correctAnswer: 2,
+            },
+            {
+                question: "Which two countries are mentioned as examples that follow the 'Jus Soli' principle?",
+                options: ["Bangladesh and India", "France and Japan", "Australia and USA", "Italy and Bangladesh"],
+                correctAnswer: 2,
+            },
+            {
+                question: "Which country follows the 'Jus Sanguinis' principle?",
+                options: ["Australia", "USA", "France", "Canada"],
+                correctAnswer: 2,
+            },
+            {
+                question: "Which of the following is NOT a condition for acquiring citizenship by Formal Grant?",
+                options: ["Marrying a citizen of the state", "Possessing high efficiency", "Being born in the country's embassy", "Taking political asylum"],
+                correctAnswer: 2,
+            },
+            {
+                question: "If a person gets citizenship of two countries, it is called:",
+                options: ["Jus Sanguinis", "Foreigner status", "Statelessness", "Dual Citizenship"],
+                correctAnswer: 3,
+            },
+            {
+                question: "A person applying for citizenship by formal grant must fulfill the condition of:",
+                options: ["Being born in that country", "Joining the army of that state", "Being a permanent resident of the state", "Being married to a citizen of that state for a minimum period"],
+                correctAnswer: 1,
+            },
+            {
+                question: "In the context of dual citizenship, when a child born to Bangladeshi parents in the USA becomes an adult, what choice can he make?",
+                options: ["He must accept USA citizenship", "He must accept Bangladeshi citizenship", "He can accept citizenship of any one country or keep both", "He must apply for formal grant"],
+                correctAnswer: 2,
+            },
+
+            // Lesson 5: Role of Citizens / General (Q36-Q40)
+            {
+                question: "Who is considered a good citizen?",
+                options: ["Anyone who is loyal to the state", "Anyone who is a permanent resident", "One who performs his duties and responsibilities sincerely", "One who enjoys social and political rights"],
+                correctAnswer: 2,
+            },
+            {
+                question: "In a modern democratic state, who are the owners of absolute power?",
+                options: ["The government", "The cabinet", "The army", "The people"],
+                correctAnswer: 3,
+            },
+            {
+                question: "Which of the following is a primary duty of a citizen for the development of the country?",
+                options: ["Traveling frequently abroad", "Voting for the right candidate", "Criticizing the government only", "Joining foreign services"],
+                correctAnswer: 1,
+            },
+            {
+                question: "The total development of a state depends on the honesty and efficiency of the:",
+                options: ["Government only", "Citizens only", "Citizens and the government", "Foreign trade partners"],
+                correctAnswer: 2,
+            },
+            {
+                question: "What factor determines whether people will vote for the current government in the next election?",
+                options: ["The government's performance of administration and development", "The state's territory size", "The loyalty of foreigners", "The principle of Jus Soli"],
+                correctAnswer: 0,
+            }
+        ];
+
+        // --- Global State ---
+        let currentQuestionIndex = 0;
+        let userAnswers = quizData.map(() => ({
+            status: 'unanswered', // 'unanswered', 'correct', 'incorrect'
+            selectedOptionIndex: null,
+            answered: false,
+        }));
+        let isQuestionAnswered = false;
+
+        // --- DOM Elements ---
+        const questionText = document.getElementById('question-text');
+        const questionNumberText = document.getElementById('question-number-text');
+        const optionsContainer = document.getElementById('options-container');
+        const feedbackMessage = document.getElementById('feedback-message');
+        const nextButton = document.getElementById('next-button');
+        const skipButton = document.getElementById('skip-button');
+        const questionView = document.getElementById('question-view');
+        const dashboardView = document.getElementById('dashboard-view');
+        const progressBar = document.getElementById('progress-bar');
+        const progressText = document.getElementById('progress-text');
+        const scoreText = document.getElementById('score-text');
+        const reviewList = document.getElementById('review-list');
+
+        // --- Core Functions ---
+
+        function indexToLetter(index) {
+            return String.fromCharCode(65 + index);
+        }
+
+        function updateProgress() {
+            const total = quizData.length;
+            const answeredCount = userAnswers.filter(a => a.answered).length;
+            const correctCount = userAnswers.filter(a => a.status === 'correct').length;
+
+            const qNumber = currentQuestionIndex < total ? currentQuestionIndex + 1 : total;
+            progressText.textContent = `Question ${qNumber} of ${total}`;
+            scoreText.textContent = `Score: ${correctCount} Correct`;
+
+            const progressPercentage = (answeredCount / total) * 100;
+            progressBar.style.width = `${progressPercentage}%`;
+        }
+
+        function renderQuestion() {
+            if (currentQuestionIndex >= quizData.length) {
+                showDashboard();
+                return;
+            }
+
+            // Reset state for new question
+            isQuestionAnswered = false;
+            nextButton.disabled = true;
+            nextButton.textContent = 'Next Question';
+            skipButton.classList.remove('hidden');
+            feedbackMessage.classList.add('hidden');
+            feedbackMessage.textContent = '';
+            optionsContainer.innerHTML = '';
+            
+            const currentQ = quizData[currentQuestionIndex];
+            questionNumberText.textContent = `Question ${currentQuestionIndex + 1}`;
+            questionText.textContent = currentQ.question;
+            
+            currentQ.options.forEach((option, index) => {
+                const button = document.createElement('button');
+                const letter = indexToLetter(index);
+                
+                button.innerHTML = `
+                    <div class="flex items-center space-x-3">
+                        <span class="option-letter w-8 h-8 flex items-center justify-center text-sm font-bold border border-gray-400 text-gray-700 bg-white rounded-full">${letter}</span>
+                        <span class="flex-1 text-sm sm:text-base">${option}</span> 
+                    </div>
+                `;
+                button.className = 'option-button w-full text-left p-4 bg-gray-100 text-gray-800 rounded-xl border border-gray-200 hover:bg-gray-200 transition duration-150 ease-in-out shadow-sm';
+                button.onclick = () => handleAnswer(index, button);
+                optionsContainer.appendChild(button);
+            });
+            
+            // If it's the last question, change the button text
+            if (currentQuestionIndex === quizData.length - 1) {
+                nextButton.textContent = 'Finish Quiz & See Results';
+            }
+
+            updateProgress();
+        }
+
+        function handleAnswer(selectedIndex, clickedButton) {
+            if (isQuestionAnswered) return;
+
+            isQuestionAnswered = true;
+            nextButton.disabled = false;
+            skipButton.classList.add('hidden');
+
+            const currentQ = quizData[currentQuestionIndex];
+            const answerState = userAnswers[currentQuestionIndex];
+            const isCorrect = selectedIndex === currentQ.correctAnswer;
+            
+            // 1. Update state
+            answerState.answered = true;
+            answerState.selectedOptionIndex = selectedIndex;
+            answerState.status = isCorrect ? 'correct' : 'incorrect';
+
+            // 2. Visual Feedback
+            Array.from(optionsContainer.children).forEach((btn, index) => {
+                btn.classList.add('disabled', 'cursor-not-allowed');
+                btn.onclick = null;
+                
+                const letterSpan = btn.querySelector('.option-letter');
+
+                if (index === currentQ.correctAnswer) {
+                    btn.classList.add('correct');
+                    btn.classList.remove('bg-gray-100', 'hover:bg-gray-200', 'border-gray-200');
+                    letterSpan.classList.add('bg-green-600', 'text-white', 'border-green-600');
+                    if (index !== selectedIndex) {
+                        btn.querySelector('span:nth-child(2)').textContent += ' (Correct)';
+                    }
+                } 
+                else if (index === selectedIndex) {
+                    btn.classList.add('incorrect');
+                    btn.classList.remove('bg-gray-100', 'hover:bg-gray-200', 'border-gray-200');
+                    letterSpan.classList.add('bg-red-600', 'text-white', 'border-red-600');
+                    btn.querySelector('span:nth-child(2)').textContent += ' (Your Choice)';
+                } else {
+                    btn.classList.remove('bg-gray-100', 'hover:bg-gray-200');
+                    btn.classList.add('bg-gray-50', 'text-gray-400');
+                    letterSpan.classList.add('bg-gray-200', 'text-gray-400');
+                }
+            });
+
+            // 3. Text Feedback
+            feedbackMessage.classList.remove('hidden');
+            if (isCorrect) {
+                feedbackMessage.textContent = '✅ Correct! Well done. Move to the next question.';
+                feedbackMessage.classList.add('bg-green-50', 'text-green-700', 'border-green-400');
+                feedbackMessage.classList.remove('bg-red-50', 'text-red-700', 'border-red-400');
+            } else {
+                feedbackMessage.textContent = `❌ Incorrect. The correct answer was option ${indexToLetter(currentQ.correctAnswer)}.`;
+                feedbackMessage.classList.add('bg-red-50', 'text-red-700', 'border-red-400');
+                feedbackMessage.classList.remove('bg-green-50', 'text-green-700', 'border-green-400');
+            }
+            
+            updateProgress();
+        }
+
+        function nextQuestion() {
+            if (!isQuestionAnswered) {
+                if (!userAnswers[currentQuestionIndex].answered) {
+                    userAnswers[currentQuestionIndex].status = 'unanswered';
+                    userAnswers[currentQuestionIndex].answered = true;
+                }
+            }
+
+            currentQuestionIndex++;
+            renderQuestion();
+        }
+
+        function showDashboard() {
+            questionView.classList.add('hidden');
+            dashboardView.classList.remove('hidden');
+
+            // 1. Calculate Stats
+            const total = quizData.length;
+            const correct = userAnswers.filter(a => a.status === 'correct').length;
+            const incorrect = userAnswers.filter(a => a.status === 'incorrect').length;
+            const unanswered = userAnswers.filter(a => a.status === 'unanswered').length;
+
+            // 2. Populate Stat Cards
+            document.getElementById('stat-total').textContent = total;
+            document.getElementById('stat-correct').textContent = correct;
+            document.getElementById('stat-incorrect').textContent = incorrect;
+            document.getElementById('stat-unanswered').textContent = unanswered;
+
+            // 3. Create Review List
+            reviewList.innerHTML = '';
+            quizData.forEach((q, index) => {
+                const answer = userAnswers[index];
+                const status = answer.status;
+                
+                let bgColor, borderColor, icon, statusText, textColor;
+
+                if (status === 'correct') {
+                    bgColor = 'bg-green-100';
+                    borderColor = 'border-green-600';
+                    icon = '✅';
+                    statusText = 'Correct';
+                    textColor = 'text-green-800';
+                } else if (status === 'incorrect') {
+                    bgColor = 'bg-red-100';
+                    borderColor = 'border-red-600';
+                    icon = '❌';
+                    statusText = 'Incorrect';
+                    textColor = 'text-red-800';
+                } else {
+                    bgColor = 'bg-yellow-100';
+                    borderColor = 'border-yellow-600';
+                    icon = '➖';
+                    statusText = 'Skipped';
+                    textColor = 'text-yellow-800';
+                }
+
+                const selectedOptionText = answer.selectedOptionIndex !== null 
+                    ? `Your choice: Option ${indexToLetter(answer.selectedOptionIndex)}: ${q.options[answer.selectedOptionIndex]}` 
+                    : 'No choice made.';
+                
+                const correctOptionText = `Correct answer: Option ${indexToLetter(q.correctAnswer)}: ${q.options[q.correctAnswer]}`;
+
+                const reviewItem = document.createElement('div');
+                reviewItem.className = `${bgColor} p-4 sm:p-5 rounded-xl border-l-4 ${borderColor} shadow-sm`;
+                reviewItem.innerHTML = `
+                    <p class="font-bold text-base sm:text-lg text-gray-800 mb-2">${icon} Q${index + 1}: ${q.question}</p>
+                    <p class="text-sm font-semibold ${textColor} mb-2">Status: ${statusText}</p>
+                    <p class="text-xs sm:text-sm text-gray-600 mb-1">${selectedOptionText}</p>
+                    <p class="text-xs sm:text-sm text-green-700 font-medium">${correctOptionText}</p>
+                `;
+                reviewList.appendChild(reviewItem);
+            });
+        }
+
+        // --- Event Listener & Initialization ---
+        nextButton.addEventListener('click', nextQuestion);
+        skipButton.addEventListener('click', () => {
+            if (!isQuestionAnswered) {
+                userAnswers[currentQuestionIndex].status = 'unanswered';
+                userAnswers[currentQuestionIndex].answered = true;
+                nextQuestion();
+            }
+        });
+        
+        // Initial render
+        renderQuestion();
+    </script>
+</body>
+</html>

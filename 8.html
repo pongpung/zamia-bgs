@@ -1,0 +1,569 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"> 
+    <title>Interactive MCQ Quiz (BGS - State & Citizenship)</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Custom styles to enhance aesthetics and scalability */
+        body {
+            /* Fallback font */
+            font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif;
+            background-color: #f3f4f6; /* Light gray background for a clean feel (Tailwind: gray-100) */
+            /* Ensure smooth scaling of text on large/high-DPI screens */
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+        
+        /* Typography adjustments using viewport units for large screens */
+        @media screen and (min-width: 1024px) {
+            .scale-text-lg {
+                /* Font size scales between 1.5rem (desktop default) and 2vw (for very large displays) */
+                font-size: min(1.5rem, 2vw);
+            }
+        }
+
+        .card-shadow {
+            /* Slightly softer, modern shadow */
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.05), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        }
+        .option-button {
+            transition: all 0.2s ease-in-out;
+            transform-origin: center;
+        }
+        .option-button:hover:not(.disabled) {
+            transform: translateY(-2px); /* Slight lift on hover */
+            box-shadow: 0 5px 15px -5px rgba(0, 0, 0, 0.1);
+        }
+        /* State Indicators: Enhanced contrast and clarity */
+        .correct {
+            background-color: #d1fae5; /* Green 100 */
+            border-color: #059669; /* Green 600 */
+            color: #065f46; /* Green 800 text */
+            font-weight: 600;
+        }
+        .incorrect {
+            background-color: #fee2e2; /* Red 100 */
+            border-color: #ef4444; /* Red 500 */
+            color: #991b1b; /* Red 800 text */
+            font-weight: 600;
+        }
+        .option-button:focus-visible { /* A11y: Better focus style */
+            outline: 2px solid #4f46e5;
+            outline-offset: 2px;
+        }
+    </style>
+</head>
+<body class="min-h-screen flex items-center justify-center p-4">
+
+    <div id="quiz-container" class="w-full max-w-2xl bg-white rounded-2xl card-shadow p-6 sm:p-10">
+        <h1 class="text-2xl sm:text-3xl font-extrabold text-gray-900 mb-6 text-center tracking-tight">Bangladesh and Her Citizens Quiz (40 Questions)</h1>
+
+        <div class="mb-8">
+            <div class="flex justify-between text-xs sm:text-sm font-medium text-gray-500 mb-2">
+                <span id="progress-text" class="text-indigo-600 font-bold">Question 1 of 40</span>
+                <span id="score-text">Score: 0 Correct</span>
+            </div>
+            <div class="w-full bg-indigo-100 rounded-full h-2 sm:h-3">
+                <div id="progress-bar" class="bg-indigo-600 h-2 sm:h-3 rounded-full transition-all duration-500 ease-in-out shadow-lg" style="width: 0%"></div>
+            </div>
+        </div>
+
+        <div id="question-view" class="space-y-6 sm:space-y-8">
+            <div class="p-6 sm:p-8 bg-white border border-gray-200 rounded-xl shadow-lg transition-transform duration-300">
+                <p class="text-sm font-medium text-indigo-600 mb-2" id="question-number-text">Question 1</p>
+                <p id="question-text" class="text-lg sm:text-xl lg:scale-text-lg font-bold text-gray-800">Question loading...</p> 
+            </div>
+            
+            <div id="options-container" class="space-y-3 sm:space-y-4">
+                </div>
+
+            <div id="feedback-message" class="hidden p-3 sm:p-4 rounded-xl text-sm sm:text-base font-semibold transition-all duration-300 border"></div>
+
+            <div class="flex justify-between pt-4 sm:pt-6 border-t border-gray-100">
+                <button id="skip-button"
+                        class="px-3 py-2 sm:px-4 sm:py-2 text-xs sm:text-sm text-gray-600 font-semibold rounded-lg hover:text-indigo-600 transition duration-150 ease-in-out">
+                    Skip for now
+                </button>
+                <button id="next-button" 
+                        class="px-6 py-2 sm:px-8 sm:py-3 bg-indigo-600 text-white font-semibold rounded-xl shadow-lg hover:bg-indigo-700 disabled:opacity-50 transition duration-150 ease-in-out transform hover:scale-[1.01]"
+                        disabled>
+                    Next Question
+                </button>
+            </div>
+        </div>
+
+        <div id="dashboard-view" class="hidden p-0">
+            <h2 class="text-xl sm:text-2xl font-bold text-gray-800 mb-8 text-center border-b pb-4">Quiz Results: Detailed Summary</h2>
+            
+            <div class="grid grid-cols-2 gap-4 md:grid-cols-4 md:gap-6 text-center mb-10">
+                <div class="p-4 sm:p-5 bg-blue-50 rounded-xl shadow-md border border-blue-200">
+                    <p class="text-3xl sm:text-4xl font-extrabold text-blue-600" id="stat-total">0</p>
+                    <p class="text-xs sm:text-sm text-gray-600 mt-1">Total</p>
+                </div>
+                <div class="p-4 sm:p-5 bg-green-50 rounded-xl shadow-md border border-green-200">
+                    <p class="text-3xl sm:text-4xl font-extrabold text-green-600" id="stat-correct">0</p>
+                    <p class="text-xs sm:text-sm text-gray-600 mt-1">Correct</p>
+                </div>
+                <div class="p-4 sm:p-5 bg-red-50 rounded-xl shadow-md border border-red-200">
+                    <p class="text-3xl sm:text-4xl font-extrabold text-red-600" id="stat-incorrect">0</p>
+                    <p class="text-xs sm:text-sm text-gray-600 mt-1">Incorrect</p>
+                </div>
+                <div class="p-4 sm:p-5 bg-yellow-50 rounded-xl shadow-md border border-yellow-200">
+                    <p class="text-3xl sm:text-4xl font-extrabold text-yellow-600" id="stat-unanswered">0</p>
+                    <p class="text-xs sm:text-sm text-gray-600 mt-1">Skipped</p>
+                </div>
+            </div>
+
+            <div class="mt-8">
+                <h3 class="text-lg sm:text-xl font-bold text-gray-700 mb-4">Review Your Quiz</h3>
+                <div id="review-list" class="space-y-4">
+                    </div>
+            </div>
+
+            <button onclick="window.location.reload()" 
+                    class="mt-8 sm:mt-10 w-full px-8 py-3 sm:py-4 bg-indigo-600 text-white font-bold text-base sm:text-lg rounded-xl shadow-lg hover:bg-indigo-700 transition duration-200 ease-in-out transform hover:scale-[1.01]">
+                Restart Quiz
+            </button>
+        </div>
+    </div>
+
+    <script>
+        // --- Quiz Data Structure: 40 Non-redundant MCQs (based only on BGS - 6-39-47.pdf) ---
+        const quizData = [
+            // Lesson 1: Concept of State (Q1-Q10)
+
+ {
+    "question": "The idea of regional and international co-operation emerged from the necessity that no state alone can meet all its what?",
+    "options": ["Taxes", "Laws", "Needs", "Demands"],
+    "correctAnswer": 2
+  },
+  {
+    "question": "Which international organization was formed with a view to establishing world peace?",
+    "options": ["SAARC", "The United Nations", "ASEAN", "EU"],
+    "correctAnswer": 1
+  },
+  {
+    "question": "In which year did Bangladesh achieve the membership of the United Nations?",
+    "options": ["1971", "1974", "1985", "1967"],
+    "correctAnswer": 1
+  },
+  {
+    "question": "SAARC, ASEAN, and EU are examples of different what?",
+    "options": ["International Organizations", "Regional Organizations", "Global Alliances", "Military Pacts"],
+    "correctAnswer": 1
+  },
+  {
+    "question": "What happens if the needs and problems of different states are not solved?",
+    "options": ["Global peace is threatened", "Welfare and development of the people is not possible", "Bilateral agreements fail", "Currencies collapse"],
+    "correctAnswer": 1
+  },
+  {
+    "question": "Through what kind of effort do regional cooperation organizations work for removing economic, political, and commercial obstacles?",
+    "options": ["Individual", "Bilateral", "Collective", "Governmental"],
+    "correctAnswer": 2
+  },
+  {
+    "question": "Which of these is **not** mentioned as a remarkable area of regional cooperation?",
+    "options": ["Security", "Information Technology", "Space Exploration", "Health and Medicine"],
+    "correctAnswer": 2
+  },
+  {
+    "question": "SAARC was formed by the countries of which region?",
+    "options": ["South East Asia", "West Europe", "South Asia", "Africa"],
+    "correctAnswer": 2
+  },
+  {
+    "question": "What is the full name of SAARC?",
+    "options": ["South Asian Alliance for Regional Cooperation", "South Asian Association for Resources and Commerce", "South Asian Association for Regional Cooperation", "South African Association for Regional Communities"],
+    "correctAnswer": 2
+  },
+  {
+    "question": "In which month and year was SAARC formed with the enthusiasm of Bangladesh?",
+    "options": ["August 1967", "December 1985", "January 1974", "May 1990"],
+    "correctAnswer": 1
+  },
+  {
+    "question": "How many founder member countries, including Bangladesh, formed SAARC in December 1985 (before Afghanistan joined)?",
+    "options": ["5", "7", "8", "10"],
+    "correctAnswer": 1
+  },
+  {
+    "question": "Which country is mentioned as an observer attached to SAARC?",
+    "options": ["China", "Myanmar", "Japan", "USA"],
+    "correctAnswer": 1
+  },
+  {
+    "question": "Where is the headquarters of SAARC situated?",
+    "options": ["Dhaka", "New Delhi", "Kathmandu", "Colombo"],
+    "correctAnswer": 2
+  },
+  {
+    "question": "What is the main target of SAARC?",
+    "options": ["Military cooperation", "Social cooperation", "Technological cooperation", "Economic cooperation"],
+    "correctAnswer": 3
+  },
+  {
+    "question": "Which goal of SAARC relates to trade among the countries of South Asia?",
+    "options": ["To build up self-reliance", "To do free trade", "To upgrade the life style", "To introduce welfare economic system"],
+    "correctAnswer": 1
+  },
+  {
+    "question": "What is the full name of ASEAN?",
+    "options": ["Association of South-East Asian Nations", "Alliance of South-East Asian Neighbors", "Asian Economic Security Alliance", "Association of South-Eastern Nations"],
+    "correctAnswer": 0
+  },
+  {
+    "question": "When was ASEAN formed?",
+    "options": ["08 August 1967", "December 1985", "01 January 1993", "20 October 1974"],
+    "correctAnswer": 0
+  },
+  {
+    "question": "Which country is **not** listed as a member of ASEAN?",
+    "options": ["Indonesia", "India", "The Philippines", "Vietnam"],
+    "correctAnswer": 1
+  },
+  {
+    "question": "Where is the headquarter of ASEAN situated?",
+    "options": ["Bangkok", "Kuala Lumpur", "Hanoi", "Jakarta"],
+    "correctAnswer": 3
+  },
+  {
+    "question": "The first step of cooperation among the West European countries was the formation of the what?",
+    "options": ["Customs Union", "European Union", "Common Market", "Schengen Area"],
+    "correctAnswer": 2
+  },
+  {
+    "question": "What is the name of the European Union's own currency?",
+    "options": ["Pound", "Euro", "Dollar", "Yen"],
+    "correctAnswer": 1
+  },
+  {
+    "question": "Where is the headquarters of the European Union (EU) situated?",
+    "options": ["Paris, France", "Berlin, Germany", "London, UK", "Brussels, Belgium"],
+    "correctAnswer": 3
+  },
+  {
+    "question": "Which countries have formed the G-7 group?",
+    "options": ["Developing nations", "Countries of the British colony", "Rich, industrially developed and influential countries", "Non-Aligned countries"],
+    "correctAnswer": 2
+  },
+  {
+    "question": "Which one of the following is **not** a member of the G-7 group?",
+    "options": ["France", "Canada", "China", "Japan"],
+    "correctAnswer": 2
+  },
+  {
+    "question": "What important global issue does the G-7 also consider and discuss, besides extending help to developing nations?",
+    "options": ["Space tourism", "Change of environment and climate", "International sports", "Digital currency regulation"],
+    "correctAnswer": 1
+  },
+  {
+    "question": "What is the organization of the African countries called?",
+    "options": ["Arab League", "OAU (Organization of African Unity)", "NAM", "Commonwealth"],
+    "correctAnswer": 1
+  },
+  {
+    "question": "What is the organization of the Muslim countries called?",
+    "options": ["The United Nations", "OIC (Organization of Islamic Co-operation)", "SAARC", "ASEAN"],
+    "correctAnswer": 1
+  },
+  {
+    "question": "The Commonwealth has been formed by countries of the British colony that are now what?",
+    "options": ["Economically struggling", "Independent", "Part of the EU", "Oil-producing"],
+    "correctAnswer": 1
+  },
+  {
+    "question": "The Non-Aligned Movement (NAM) has been formed by countries who are not members of any what?",
+    "options": ["Economic association", "Cultural exchange group", "Military association", "Regional organization"],
+    "correctAnswer": 2
+  },
+  {
+    "question": "What type of cooperation agreement is signed between two countries for mutual cooperation?",
+    "options": ["Multilateral", "Regional", "Bilateral", "Global"],
+    "correctAnswer": 2
+  },
+  {
+    "question": "The working field of SAARC has spread into all sectors including social, educational, cultural, communicative, and what other development?",
+    "options": ["Infrastructure", "Technological", "Financial", "Agricultural"],
+    "correctAnswer": 1
+  },
+  {
+    "question": "One of the goals of ASEAN is to expand cooperation in agricultural and what other sector among the member countries?",
+    "options": ["Military", "Tourism", "Industrial", "Mining"],
+    "correctAnswer": 2
+  },
+  {
+    "question": "Countries of the same region mutually cooperate with one another for what reason?",
+    "options": ["To increase military strength", "To easily solve problems", "To compete against other regions", "To dominate global trade"],
+    "correctAnswer": 1
+  },
+  {
+    "question": "What does the G-7 discuss to make the world free from?",
+    "options": ["New technologies", "Poverty, hunger, illiteracy, and poor health", "Trade agreements", "Internal political disputes"],
+    "correctAnswer": 1
+  },
+  {
+    "question": "The EU enables member countries to communicate, settle, and carry on what freely from one country to another?",
+    "options": ["Diplomatic visits", "Trade and commerce", "Military exercises", "Educational conferences"],
+    "correctAnswer": 1
+  },
+  {
+    "question": "Besides Bangladesh, which of these is a member country of SAARC?",
+    "options": ["Thailand", "Myanmar", "Maldives", "Vietnam"],
+    "correctAnswer": 2
+  },
+  {
+    "question": "Which ASEAN member country is also an observer in SAARC?",
+    "options": ["Indonesia", "Thailand", "Myanmar", "Singapore"],
+    "correctAnswer": 2
+  },
+  {
+    "question": "One of the goals of SAARC is to create mutual negotiation among member countries by removing what?",
+    "options": ["Cultural differences", "Trade tariffs", "Existing disputes and problems", "Language barriers"],
+    "correctAnswer": 2
+  },
+  {
+    "question": "Which of these is mentioned as an area of regional cooperation relating to crime?",
+    "options": ["Prevention of Drugs and Smuggling", "Counter-terrorism", "Cybercrime legislation", "Immigration control"],
+    "correctAnswer": 0
+  },
+  {
+    "question": "What is the organization of the Arab countries called?",
+    "options": ["The Gulf Cooperation Council (GCC)", "The Arab League", "OIC", "OAU"],
+    "correctAnswer": 1
+  }
+        ];
+
+        // --- Global State ---
+        let currentQuestionIndex = 0;
+        let userAnswers = quizData.map(() => ({
+            status: 'unanswered', // 'unanswered', 'correct', 'incorrect'
+            selectedOptionIndex: null,
+            answered: false,
+        }));
+        let isQuestionAnswered = false;
+
+        // --- DOM Elements ---
+        const questionText = document.getElementById('question-text');
+        const questionNumberText = document.getElementById('question-number-text');
+        const optionsContainer = document.getElementById('options-container');
+        const feedbackMessage = document.getElementById('feedback-message');
+        const nextButton = document.getElementById('next-button');
+        const skipButton = document.getElementById('skip-button');
+        const questionView = document.getElementById('question-view');
+        const dashboardView = document.getElementById('dashboard-view');
+        const progressBar = document.getElementById('progress-bar');
+        const progressText = document.getElementById('progress-text');
+        const scoreText = document.getElementById('score-text');
+        const reviewList = document.getElementById('review-list');
+
+        // --- Core Functions ---
+
+        function indexToLetter(index) {
+            return String.fromCharCode(65 + index);
+        }
+
+        function updateProgress() {
+            const total = quizData.length;
+            const answeredCount = userAnswers.filter(a => a.answered).length;
+            const correctCount = userAnswers.filter(a => a.status === 'correct').length;
+
+            const qNumber = currentQuestionIndex < total ? currentQuestionIndex + 1 : total;
+            progressText.textContent = `Question ${qNumber} of ${total}`;
+            scoreText.textContent = `Score: ${correctCount} Correct`;
+
+            const progressPercentage = (answeredCount / total) * 100;
+            progressBar.style.width = `${progressPercentage}%`;
+        }
+
+        function renderQuestion() {
+            if (currentQuestionIndex >= quizData.length) {
+                showDashboard();
+                return;
+            }
+
+            // Reset state for new question
+            isQuestionAnswered = false;
+            nextButton.disabled = true;
+            nextButton.textContent = 'Next Question';
+            skipButton.classList.remove('hidden');
+            feedbackMessage.classList.add('hidden');
+            feedbackMessage.textContent = '';
+            optionsContainer.innerHTML = '';
+            
+            const currentQ = quizData[currentQuestionIndex];
+            questionNumberText.textContent = `Question ${currentQuestionIndex + 1}`;
+            questionText.textContent = currentQ.question;
+            
+            currentQ.options.forEach((option, index) => {
+                const button = document.createElement('button');
+                const letter = indexToLetter(index);
+                
+                button.innerHTML = `
+                    <div class="flex items-center space-x-3">
+                        <span class="option-letter w-8 h-8 flex items-center justify-center text-sm font-bold border border-gray-400 text-gray-700 bg-white rounded-full">${letter}</span>
+                        <span class="flex-1 text-sm sm:text-base">${option}</span> 
+                    </div>
+                `;
+                button.className = 'option-button w-full text-left p-4 bg-gray-100 text-gray-800 rounded-xl border border-gray-200 hover:bg-gray-200 transition duration-150 ease-in-out shadow-sm';
+                button.onclick = () => handleAnswer(index, button);
+                optionsContainer.appendChild(button);
+            });
+            
+            // If it's the last question, change the button text
+            if (currentQuestionIndex === quizData.length - 1) {
+                nextButton.textContent = 'Finish Quiz & See Results';
+            }
+
+            updateProgress();
+        }
+
+        function handleAnswer(selectedIndex, clickedButton) {
+            if (isQuestionAnswered) return;
+
+            isQuestionAnswered = true;
+            nextButton.disabled = false;
+            skipButton.classList.add('hidden');
+
+            const currentQ = quizData[currentQuestionIndex];
+            const answerState = userAnswers[currentQuestionIndex];
+            const isCorrect = selectedIndex === currentQ.correctAnswer;
+            
+            // 1. Update state
+            answerState.answered = true;
+            answerState.selectedOptionIndex = selectedIndex;
+            answerState.status = isCorrect ? 'correct' : 'incorrect';
+
+            // 2. Visual Feedback
+            Array.from(optionsContainer.children).forEach((btn, index) => {
+                btn.classList.add('disabled', 'cursor-not-allowed');
+                btn.onclick = null;
+                
+                const letterSpan = btn.querySelector('.option-letter');
+
+                if (index === currentQ.correctAnswer) {
+                    btn.classList.add('correct');
+                    btn.classList.remove('bg-gray-100', 'hover:bg-gray-200', 'border-gray-200');
+                    letterSpan.classList.add('bg-green-600', 'text-white', 'border-green-600');
+                    if (index !== selectedIndex) {
+                        btn.querySelector('span:nth-child(2)').textContent += ' (Correct)';
+                    }
+                } 
+                else if (index === selectedIndex) {
+                    btn.classList.add('incorrect');
+                    btn.classList.remove('bg-gray-100', 'hover:bg-gray-200', 'border-gray-200');
+                    letterSpan.classList.add('bg-red-600', 'text-white', 'border-red-600');
+                    btn.querySelector('span:nth-child(2)').textContent += ' (Your Choice)';
+                } else {
+                    btn.classList.remove('bg-gray-100', 'hover:bg-gray-200');
+                    btn.classList.add('bg-gray-50', 'text-gray-400');
+                    letterSpan.classList.add('bg-gray-200', 'text-gray-400');
+                }
+            });
+
+            // 3. Text Feedback
+            feedbackMessage.classList.remove('hidden');
+            if (isCorrect) {
+                feedbackMessage.textContent = '✅ Correct! Well done. Move to the next question.';
+                feedbackMessage.classList.add('bg-green-50', 'text-green-700', 'border-green-400');
+                feedbackMessage.classList.remove('bg-red-50', 'text-red-700', 'border-red-400');
+            } else {
+                feedbackMessage.textContent = `❌ Incorrect. The correct answer was option ${indexToLetter(currentQ.correctAnswer)}.`;
+                feedbackMessage.classList.add('bg-red-50', 'text-red-700', 'border-red-400');
+                feedbackMessage.classList.remove('bg-green-50', 'text-green-700', 'border-green-400');
+            }
+            
+            updateProgress();
+        }
+
+        function nextQuestion() {
+            if (!isQuestionAnswered) {
+                if (!userAnswers[currentQuestionIndex].answered) {
+                    userAnswers[currentQuestionIndex].status = 'unanswered';
+                    userAnswers[currentQuestionIndex].answered = true;
+                }
+            }
+
+            currentQuestionIndex++;
+            renderQuestion();
+        }
+
+        function showDashboard() {
+            questionView.classList.add('hidden');
+            dashboardView.classList.remove('hidden');
+
+            // 1. Calculate Stats
+            const total = quizData.length;
+            const correct = userAnswers.filter(a => a.status === 'correct').length;
+            const incorrect = userAnswers.filter(a => a.status === 'incorrect').length;
+            const unanswered = userAnswers.filter(a => a.status === 'unanswered').length;
+
+            // 2. Populate Stat Cards
+            document.getElementById('stat-total').textContent = total;
+            document.getElementById('stat-correct').textContent = correct;
+            document.getElementById('stat-incorrect').textContent = incorrect;
+            document.getElementById('stat-unanswered').textContent = unanswered;
+
+            // 3. Create Review List
+            reviewList.innerHTML = '';
+            quizData.forEach((q, index) => {
+                const answer = userAnswers[index];
+                const status = answer.status;
+                
+                let bgColor, borderColor, icon, statusText, textColor;
+
+                if (status === 'correct') {
+                    bgColor = 'bg-green-100';
+                    borderColor = 'border-green-600';
+                    icon = '✅';
+                    statusText = 'Correct';
+                    textColor = 'text-green-800';
+                } else if (status === 'incorrect') {
+                    bgColor = 'bg-red-100';
+                    borderColor = 'border-red-600';
+                    icon = '❌';
+                    statusText = 'Incorrect';
+                    textColor = 'text-red-800';
+                } else {
+                    bgColor = 'bg-yellow-100';
+                    borderColor = 'border-yellow-600';
+                    icon = '➖';
+                    statusText = 'Skipped';
+                    textColor = 'text-yellow-800';
+                }
+
+                const selectedOptionText = answer.selectedOptionIndex !== null 
+                    ? `Your choice: Option ${indexToLetter(answer.selectedOptionIndex)}: ${q.options[answer.selectedOptionIndex]}` 
+                    : 'No choice made.';
+                
+                const correctOptionText = `Correct answer: Option ${indexToLetter(q.correctAnswer)}: ${q.options[q.correctAnswer]}`;
+
+                const reviewItem = document.createElement('div');
+                reviewItem.className = `${bgColor} p-4 sm:p-5 rounded-xl border-l-4 ${borderColor} shadow-sm`;
+                reviewItem.innerHTML = `
+                    <p class="font-bold text-base sm:text-lg text-gray-800 mb-2">${icon} Q${index + 1}: ${q.question}</p>
+                    <p class="text-sm font-semibold ${textColor} mb-2">Status: ${statusText}</p>
+                    <p class="text-xs sm:text-sm text-gray-600 mb-1">${selectedOptionText}</p>
+                    <p class="text-xs sm:text-sm text-green-700 font-medium">${correctOptionText}</p>
+                `;
+                reviewList.appendChild(reviewItem);
+            });
+        }
+
+        // --- Event Listener & Initialization ---
+        nextButton.addEventListener('click', nextQuestion);
+        skipButton.addEventListener('click', () => {
+            if (!isQuestionAnswered) {
+                userAnswers[currentQuestionIndex].status = 'unanswered';
+                userAnswers[currentQuestionIndex].answered = true;
+                nextQuestion();
+            }
+        });
+        
+        // Initial render
+        renderQuestion();
+    </script>
+</body>
+</html>

@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BGS Learning Portal</title>
+    <style>
+        /* CSS for Professional and Clean Design */
+        :root {
+            --primary-color: #28a745; /* Green for BGS focus */
+            --secondary-color: #6c757d;
+            --background-color: #f8f9fa;
+            --card-background: #ffffff;
+            --text-color: #343a40;
+            --border-radius: 10px;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--background-color);
+            color: var(--text-color);
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        header {
+            width: 100%;
+            background-color: var(--card-background);
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+            padding: 20px 0;
+            text-align: center;
+            margin-bottom: 40px;
+        }
+
+        header h1 {
+            color: var(--primary-color);
+            margin: 0;
+            font-size: 2.5em;
+        }
+
+        .container {
+            width: 90%;
+            max-width: 800px; /* Reduced max-width for better focus */
+            padding: 20px;
+        }
+
+        /* --- Common Card Styles & Animations --- */
+        .page-content {
+            animation: fadeIn 0.5s ease-out;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* --- HOME PAGE / BGS Entry Point Styles --- */
+        #home-page {
+            text-align: center;
+        }
+
+        .option-card {
+            background-color: var(--card-background);
+            border: 2px solid var(--primary-color); /* Stronger border for emphasis */
+            border-radius: var(--border-radius);
+            padding: 50px;
+            margin-top: 30px;
+            display: inline-block;
+            transition: transform 0.3s, box-shadow 0.3s;
+            box-shadow: 0 6px 15px rgba(0, 0, 0, 0.1);
+            cursor: pointer;
+            width: 100%; /* Full width within container */
+            box-sizing: border-box;
+        }
+
+        .option-card:hover {
+            transform: translateY(-8px);
+            box-shadow: 0 12px 30px rgba(0, 0, 0, 0.15);
+        }
+
+        .option-card h3 {
+            color: var(--primary-color);
+            margin-top: 20px;
+            margin-bottom: 5px;
+            font-size: 2em;
+        }
+
+        .option-card p {
+            color: var(--secondary-color);
+            font-size: 1.1em;
+        }
+
+        .icon {
+            font-size: 4em;
+            color: var(--primary-color);
+            display: block;
+        }
+
+        /* --- CHAPTERS PAGE Styles --- */
+        #chapters-page {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        #chapters-page h2 {
+            text-align: center;
+            color: var(--text-color);
+        }
+
+        .chapter-list {
+            list-style: none;
+            padding: 0;
+        }
+
+        .chapter-item {
+            background-color: var(--card-background);
+            margin-bottom: 15px;
+            border-radius: var(--border-radius);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+            transition: transform 0.2s;
+        }
+
+        .chapter-item:hover {
+            transform: scale(1.01);
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        .chapter-link {
+            display: block;
+            padding: 20px 25px;
+            text-decoration: none;
+            color: var(--text-color);
+            font-size: 1.2em;
+            font-weight: 600;
+            border-left: 5px solid var(--primary-color);
+            border-radius: var(--border-radius);
+            transition: background-color 0.3s;
+        }
+
+        .chapter-link:hover {
+            background-color: #e6f5e9; /* Light green hover */
+        }
+
+        .chapter-link span {
+            color: var(--primary-color);
+            margin-right: 15px;
+        }
+
+        .back-button {
+            display: inline-block;
+            margin-top: 20px;
+            padding: 10px 20px;
+            background-color: var(--secondary-color);
+            color: white;
+            text-decoration: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+
+        .back-button:hover {
+            background-color: #5a6268;
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1 id="main-header-title">📚 Academic Learning Portal</h1>
+    </header>
+
+    <div class="container">
+        <div id="home-page" class="page-content">
+            <h2>Select Subject</h2>
+
+            <div class="option-card" onclick="showPage('chapters-page')">
+                <span class="icon">🇧🇩</span>
+                <h3>Bangladesh & Global Studies (BGS)</h3>
+                <p>Click here to access chapters, notes, and exercises.</p>
+            </div>
+        </div>
+
+        <div id="chapters-page" class="page-content" style="display: none;">
+            <h2>📖 BGS Chapter Selection</h2>
+
+            <ul class="chapter-list">
+                <li class="chapter-item">
+                    <a href="8.html" class="chapter-link">
+                        <span>Chapter 8:</span> 
+                    </a>
+                </li>
+                <li class="chapter-item">
+                    <a href="7.html" class="chapter-link">
+                        <span>Chapter 7:</span> 
+                    </a>
+                </li>
+                <li class="chapter-item">
+                    <a href="6.html" class="chapter-link">
+                        <span>Chapter 6:</span> 
+                    </a>
+                </li>
+                <li class="chapter-item">
+                    <a href="5.html" class="chapter-link">
+                        <span>Chapter 5:</span> 
+                    </a>
+                </li>
+                </ul>
+
+            <button class="back-button" onclick="showPage('home-page')">← Back to Main</button>
+        </div>
+    </div>
+
+    <script>
+        // JavaScript for seamless page switching (Single Page Application effect)
+        function showPage(pageId) {
+            // Hide all page content sections
+            const pages = document.querySelectorAll('.page-content');
+            pages.forEach(page => {
+                page.style.display = 'none';
+            });
+
+            // Show the requested page
+            const activePage = document.getElementById(pageId);
+            if (activePage) {
+                activePage.style.display = 'block';
+            }
+
+            // Update header title based on the page
+            const headerTitle = document.getElementById('main-header-title');
+            if (pageId === 'home-page') {
+                headerTitle.innerHTML = '📚 Academic Learning Portal';
+            } else if (pageId === 'chapters-page') {
+                headerTitle.innerHTML = '📖 Bangladesh & Global Studies';
+            }
+        }
+
+        // Initialize by showing the home page when the script loads
+        document.addEventListener('DOMContentLoaded', () => {
+            showPage('home-page');
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,569 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"> 
+    <title>Interactive MCQ Quiz (BGS - State & Citizenship)</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Custom styles to enhance aesthetics and scalability */
+        body {
+            /* Fallback font */
+            font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif;
+            background-color: #f3f4f6; /* Light gray background for a clean feel (Tailwind: gray-100) */
+            /* Ensure smooth scaling of text on large/high-DPI screens */
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+        
+        /* Typography adjustments using viewport units for large screens */
+        @media screen and (min-width: 1024px) {
+            .scale-text-lg {
+                /* Font size scales between 1.5rem (desktop default) and 2vw (for very large displays) */
+                font-size: min(1.5rem, 2vw);
+            }
+        }
+
+        .card-shadow {
+            /* Slightly softer, modern shadow */
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.05), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        }
+        .option-button {
+            transition: all 0.2s ease-in-out;
+            transform-origin: center;
+        }
+        .option-button:hover:not(.disabled) {
+            transform: translateY(-2px); /* Slight lift on hover */
+            box-shadow: 0 5px 15px -5px rgba(0, 0, 0, 0.1);
+        }
+        /* State Indicators: Enhanced contrast and clarity */
+        .correct {
+            background-color: #d1fae5; /* Green 100 */
+            border-color: #059669; /* Green 600 */
+            color: #065f46; /* Green 800 text */
+            font-weight: 600;
+        }
+        .incorrect {
+            background-color: #fee2e2; /* Red 100 */
+            border-color: #ef4444; /* Red 500 */
+            color: #991b1b; /* Red 800 text */
+            font-weight: 600;
+        }
+        .option-button:focus-visible { /* A11y: Better focus style */
+            outline: 2px solid #4f46e5;
+            outline-offset: 2px;
+        }
+    </style>
+</head>
+<body class="min-h-screen flex items-center justify-center p-4">
+
+    <div id="quiz-container" class="w-full max-w-2xl bg-white rounded-2xl card-shadow p-6 sm:p-10">
+        <h1 class="text-2xl sm:text-3xl font-extrabold text-gray-900 mb-6 text-center tracking-tight">Bangladesh and Her Citizens Quiz (40 Questions)</h1>
+
+        <div class="mb-8">
+            <div class="flex justify-between text-xs sm:text-sm font-medium text-gray-500 mb-2">
+                <span id="progress-text" class="text-indigo-600 font-bold">Question 1 of 40</span>
+                <span id="score-text">Score: 0 Correct</span>
+            </div>
+            <div class="w-full bg-indigo-100 rounded-full h-2 sm:h-3">
+                <div id="progress-bar" class="bg-indigo-600 h-2 sm:h-3 rounded-full transition-all duration-500 ease-in-out shadow-lg" style="width: 0%"></div>
+            </div>
+        </div>
+
+        <div id="question-view" class="space-y-6 sm:space-y-8">
+            <div class="p-6 sm:p-8 bg-white border border-gray-200 rounded-xl shadow-lg transition-transform duration-300">
+                <p class="text-sm font-medium text-indigo-600 mb-2" id="question-number-text">Question 1</p>
+                <p id="question-text" class="text-lg sm:text-xl lg:scale-text-lg font-bold text-gray-800">Question loading...</p> 
+            </div>
+            
+            <div id="options-container" class="space-y-3 sm:space-y-4">
+                </div>
+
+            <div id="feedback-message" class="hidden p-3 sm:p-4 rounded-xl text-sm sm:text-base font-semibold transition-all duration-300 border"></div>
+
+            <div class="flex justify-between pt-4 sm:pt-6 border-t border-gray-100">
+                <button id="skip-button"
+                        class="px-3 py-2 sm:px-4 sm:py-2 text-xs sm:text-sm text-gray-600 font-semibold rounded-lg hover:text-indigo-600 transition duration-150 ease-in-out">
+                    Skip for now
+                </button>
+                <button id="next-button" 
+                        class="px-6 py-2 sm:px-8 sm:py-3 bg-indigo-600 text-white font-semibold rounded-xl shadow-lg hover:bg-indigo-700 disabled:opacity-50 transition duration-150 ease-in-out transform hover:scale-[1.01]"
+                        disabled>
+                    Next Question
+                </button>
+            </div>
+        </div>
+
+        <div id="dashboard-view" class="hidden p-0">
+            <h2 class="text-xl sm:text-2xl font-bold text-gray-800 mb-8 text-center border-b pb-4">Quiz Results: Detailed Summary</h2>
+            
+            <div class="grid grid-cols-2 gap-4 md:grid-cols-4 md:gap-6 text-center mb-10">
+                <div class="p-4 sm:p-5 bg-blue-50 rounded-xl shadow-md border border-blue-200">
+                    <p class="text-3xl sm:text-4xl font-extrabold text-blue-600" id="stat-total">0</p>
+                    <p class="text-xs sm:text-sm text-gray-600 mt-1">Total</p>
+                </div>
+                <div class="p-4 sm:p-5 bg-green-50 rounded-xl shadow-md border border-green-200">
+                    <p class="text-3xl sm:text-4xl font-extrabold text-green-600" id="stat-correct">0</p>
+                    <p class="text-xs sm:text-sm text-gray-600 mt-1">Correct</p>
+                </div>
+                <div class="p-4 sm:p-5 bg-red-50 rounded-xl shadow-md border border-red-200">
+                    <p class="text-3xl sm:text-4xl font-extrabold text-red-600" id="stat-incorrect">0</p>
+                    <p class="text-xs sm:text-sm text-gray-600 mt-1">Incorrect</p>
+                </div>
+                <div class="p-4 sm:p-5 bg-yellow-50 rounded-xl shadow-md border border-yellow-200">
+                    <p class="text-3xl sm:text-4xl font-extrabold text-yellow-600" id="stat-unanswered">0</p>
+                    <p class="text-xs sm:text-sm text-gray-600 mt-1">Skipped</p>
+                </div>
+            </div>
+
+            <div class="mt-8">
+                <h3 class="text-lg sm:text-xl font-bold text-gray-700 mb-4">Review Your Quiz</h3>
+                <div id="review-list" class="space-y-4">
+                    </div>
+            </div>
+
+            <button onclick="window.location.reload()" 
+                    class="mt-8 sm:mt-10 w-full px-8 py-3 sm:py-4 bg-indigo-600 text-white font-bold text-base sm:text-lg rounded-xl shadow-lg hover:bg-indigo-700 transition duration-200 ease-in-out transform hover:scale-[1.01]">
+                Restart Quiz
+            </button>
+        </div>
+    </div>
+
+    <script>
+        // --- Quiz Data Structure: 40 Non-redundant MCQs (based only on BGS - 6-39-47.pdf) ---
+        const quizData = [
+            // Lesson 1: Concept of State (Q1-Q10)
+
+    {
+        question: "What is the main source of light and heat, according to the text?",
+        options: ["The Moon", "Fire", "The Sun", "Electricity"],
+        correctAnswer: 2,
+    },
+    {
+        question: "What are the four basic elements of nature mentioned in Lesson-1?",
+        options: ["Sun, Moon, Earth, Sky", "Trees, Animals, Rivers, Hills", "Soil, Water, Air, and Heat", "Soil, Water, Air, and Light"],
+        correctAnswer: 3,
+    },
+    {
+        question: "Man's life on earth has been possible on the basis of which elements?",
+        options: ["Civilization changes", "Environmental problems", "Man's activities", "Soil, water, air, and light"],
+        correctAnswer: 3,
+    },
+    {
+        question: "At the outset of creation, what was man more dependent on?",
+        options: ["Animals", "Technology", "Farming", "Nature"],
+        correctAnswer: 3,
+    },
+    {
+        question: "What did man use as a main tool of production?",
+        options: ["Water", "Light", "Soil", "Air"],
+        correctAnswer: 2,
+    },
+    {
+        question: "When did man come to a stable position?",
+        options: ["When he built houses", "When he made machines", "Starting cultivation", "When he domesticated animals"],
+        correctAnswer: 2,
+    },
+    {
+        question: "After starting cultivation, what did man try to conquer?",
+        options: ["Soil fertility", "Nature", "Other states", "Wild animals"],
+        correctAnswer: 1,
+    },
+    {
+        question: "What did man do to create vast cultivable land?",
+        options: ["Used chemical fertilizers", "Cleared forests and jungles", "Built dams", "Started recycling"],
+        correctAnswer: 1,
+    },
+    {
+        question: "How did man gradually increase his domination over nature?",
+        options: ["By planting trees", "By hunting", "By making dams and using water current to move machines", "By using organic fertilizers"],
+        correctAnswer: 2,
+    },
+    {
+        question: "What is harmful to human health, caused by the use of machines and vehicles that create noise?",
+        options: ["Water pollution", "Soil decay", "Air pollution", "Sound pollution"],
+        correctAnswer: 3,
+    },
+    {
+        question: "The competition among all to live in luxury is increasing pressure on what?",
+        options: ["Cultivable land", "Wild animals", "The environment", "The population"],
+        correctAnswer: 2,
+    },
+    {
+        question: "Which balance is being hampered by pollution, affecting man's life?",
+        options: ["The balance between air and light", "The balance of supply and demand", "The balance of man's life with soil, water, air and heat", "The balance of forests and jungles"],
+        correctAnswer: 2,
+    },
+    {
+        question: "Which disease is specifically mentioned as increasing among children in Dhaka city due to pollution?",
+        options: ["Cancer", "Heart disease", "Skin disease", "Asthma"],
+        correctAnswer: 3,
+    },
+    {
+        question: "What is increasing in cities because they cannot ensure accommodation for the excess population?",
+        options: ["Factories", "Green spaces", "High-rise buildings", "The number of slums"],
+        correctAnswer: 3,
+    },
+    {
+        question: "Swamps of the country are getting ruined for human settlement and for establishing what?",
+        options: ["Parks", "Industrial factories", "Schools", "Hospitals"],
+        correctAnswer: 1,
+    },
+    {
+        question: "What makes river water unsuitable for use, sometimes resulting in the extinction of aquatic biodiversity?",
+        options: ["Excessive rainfall", "Organic fertilizers", "Industrial wastes", "Tree leaves"],
+        correctAnswer: 2,
+    },
+    {
+        question: "In hilly areas, hills are cut for building houses and to make what?",
+        options: ["Highways", "Brick fields", "Dams", "Reservoirs"],
+        correctAnswer: 1,
+    },
+    {
+        question: "What causes the sea level to rise, leading people of coastal regions to become 'environment refugee'?",
+        options: ["Excessive rainfall", "Tsunami", "Global warming", "Land erosion"],
+        correctAnswer: 2,
+    },
+    {
+        question: "What reduces the normal fertility of land?",
+        options: ["Using chemical fertilizers", "Repeated cultivation of the same land", "Using organic fertilizers", "Clearing forests"],
+        correctAnswer: 1,
+    },
+    {
+        question: "Black smoke, poisonous gases, and wastes from factories pollute which two elements?",
+        options: ["Soil and Light", "Water and Air", "Heat and Soil", "Air and Light"],
+        correctAnswer: 1,
+    },
+    {
+        question: "What has become imbalanced due to the rise of temperature?",
+        options: ["Population growth", "Oxygen level", "Climate", "Land fertility"],
+        correctAnswer: 2,
+    },
+    {
+        question: "Excessive rainfall, drought, storm, flood, and tsunami are caused by an imbalanced what?",
+        options: ["Soil", "Climate", "Population", "Fertilizer use"],
+        correctAnswer: 1,
+    },
+    {
+        question: "The cutting down of trees and disappearing natural forests cannot prevent what?",
+        options: ["Excessive rainfall", "The rise of the sea level", "Land erosion and rise of temperature", "Sound pollution"],
+        correctAnswer: 2,
+    },
+    {
+        question: "What prevents ultra-violate rays of the sun, as mentioned in the text?",
+        options: ["Earth's atmosphere", "Natural forests", "The ozone layer in the space", "The sea"],
+        correctAnswer: 2,
+    },
+    {
+        question: "The use of what slow-moving material is causing permanent damage to the environment?",
+        options: ["Chemical fertilizers", "Industrial wastes", "Plastics", "Cars and vehicles"],
+        correctAnswer: 2,
+    },
+    {
+        question: "What 'unending source of oxygen' is being destroyed to meet the increasing demand of people?",
+        options: ["Minerals", "The ozone layer", "Trees", "Rivers and canals"],
+        correctAnswer: 2,
+    },
+    {
+        question: "The imbalance of oxygen helps to increase which gases?",
+        options: ["Ozone and water vapor", "Hydrogen and helium", "Nitrogen, carbon-dioxide and other temperature increasing gases", "Oxygen and light"],
+        correctAnswer: 2,
+    },
+    {
+        question: "What is feared to be submerged due to the melting ice in the two poles?",
+        options: ["Hilly areas", "Cities like Dhaka", "Low-lying areas of the coastal countries", "All rivers and canals"],
+        correctAnswer: 2,
+    },
+    {
+        question: "Which of the following is listed as an action to prevent environmental problems?",
+        options: ["Cut hills", "Throw garbage anywhere", "Will stop the use of one time useable plastics", "Build industrial factories near locality"],
+        correctAnswer: 2,
+    },
+    {
+        question: "Where should solid waste NEVER be disposed of, according to the action plan?",
+        options: ["Proper place", "Landfill", "The drains", "Recycling bins"],
+        correctAnswer: 2,
+    },
+    {
+        question: "In which areas should people specifically avoid causing noise pollution?",
+        options: ["Slums", "Open fields", "Coastal regions", "Hospitals, educational institutions, libraries and offices"],
+        correctAnswer: 3,
+    },
+    {
+        question: "What should be the priority in development work?",
+        options: ["Man's comfort", "Factory production", "The balance of nature and environment", "Increased population"],
+        correctAnswer: 2,
+    },
+    {
+        question: "What is one thing children are encouraged to do to prevent environmental problems?",
+        options: ["Build factories", "Cut hills", "Use plastics", "Plant trees and take care of them"],
+        correctAnswer: 3,
+    },
+    {
+        question: "Which of the following is an expected learning outcome of the chapter?",
+        options: ["Explain the structure of the ozone layer", "Identify all animal species", "Explain man's relation with the environment", "Calculate the sea level rise"],
+        correctAnswer: 2,
+    },
+    {
+        question: "Which of the following is NOT a consequence of pollution, as per the text?",
+        options: ["Asthma in children", "Cancer and heart disease", "Increase in slums", "Normal fertility of land"],
+        correctAnswer: 3,
+    },
+    {
+        question: "How does the fertility of soil change if it decays and its minerals decrease?",
+        options: ["It increases", "It remains stable", "It decreases", "It is not affected"],
+        correctAnswer: 2,
+    },
+    {
+        question: "What did man use hides of some animals for?",
+        options: ["To cook them", "To make them pet", "To build houses", "To survive"],
+        correctAnswer: 3,
+    },
+    {
+        question: "What is the text's guidance on the use of vehicles emitting black smoke?",
+        options: ["We will encourage their movement", "We will be conscious of banning their movement", "We will use them for luxury", "We will ignore their impact"],
+        correctAnswer: 1,
+    },
+    {
+        question: "Man selected necessary things from nature to do what?",
+        options: ["To start cultivation", "To make machines", "To build houses", "To hunt animals"],
+        correctAnswer: 2,
+    },
+    {
+        question: "What happens when industrial wastes get mixed with river water and make it unsuitable for use?",
+        options: ["It causes excessive rainfall", "It results in the extinction of aquatic biodiversity", "It improves the climate", "It prevents land erosion"],
+        correctAnswer: 1,
+    }
+        ];
+
+        // --- Global State ---
+        let currentQuestionIndex = 0;
+        let userAnswers = quizData.map(() => ({
+            status: 'unanswered', // 'unanswered', 'correct', 'incorrect'
+            selectedOptionIndex: null,
+            answered: false,
+        }));
+        let isQuestionAnswered = false;
+
+        // --- DOM Elements ---
+        const questionText = document.getElementById('question-text');
+        const questionNumberText = document.getElementById('question-number-text');
+        const optionsContainer = document.getElementById('options-container');
+        const feedbackMessage = document.getElementById('feedback-message');
+        const nextButton = document.getElementById('next-button');
+        const skipButton = document.getElementById('skip-button');
+        const questionView = document.getElementById('question-view');
+        const dashboardView = document.getElementById('dashboard-view');
+        const progressBar = document.getElementById('progress-bar');
+        const progressText = document.getElementById('progress-text');
+        const scoreText = document.getElementById('score-text');
+        const reviewList = document.getElementById('review-list');
+
+        // --- Core Functions ---
+
+        function indexToLetter(index) {
+            return String.fromCharCode(65 + index);
+        }
+
+        function updateProgress() {
+            const total = quizData.length;
+            const answeredCount = userAnswers.filter(a => a.answered).length;
+            const correctCount = userAnswers.filter(a => a.status === 'correct').length;
+
+            const qNumber = currentQuestionIndex < total ? currentQuestionIndex + 1 : total;
+            progressText.textContent = `Question ${qNumber} of ${total}`;
+            scoreText.textContent = `Score: ${correctCount} Correct`;
+
+            const progressPercentage = (answeredCount / total) * 100;
+            progressBar.style.width = `${progressPercentage}%`;
+        }
+
+        function renderQuestion() {
+            if (currentQuestionIndex >= quizData.length) {
+                showDashboard();
+                return;
+            }
+
+            // Reset state for new question
+            isQuestionAnswered = false;
+            nextButton.disabled = true;
+            nextButton.textContent = 'Next Question';
+            skipButton.classList.remove('hidden');
+            feedbackMessage.classList.add('hidden');
+            feedbackMessage.textContent = '';
+            optionsContainer.innerHTML = '';
+            
+            const currentQ = quizData[currentQuestionIndex];
+            questionNumberText.textContent = `Question ${currentQuestionIndex + 1}`;
+            questionText.textContent = currentQ.question;
+            
+            currentQ.options.forEach((option, index) => {
+                const button = document.createElement('button');
+                const letter = indexToLetter(index);
+                
+                button.innerHTML = `
+                    <div class="flex items-center space-x-3">
+                        <span class="option-letter w-8 h-8 flex items-center justify-center text-sm font-bold border border-gray-400 text-gray-700 bg-white rounded-full">${letter}</span>
+                        <span class="flex-1 text-sm sm:text-base">${option}</span> 
+                    </div>
+                `;
+                button.className = 'option-button w-full text-left p-4 bg-gray-100 text-gray-800 rounded-xl border border-gray-200 hover:bg-gray-200 transition duration-150 ease-in-out shadow-sm';
+                button.onclick = () => handleAnswer(index, button);
+                optionsContainer.appendChild(button);
+            });
+            
+            // If it's the last question, change the button text
+            if (currentQuestionIndex === quizData.length - 1) {
+                nextButton.textContent = 'Finish Quiz & See Results';
+            }
+
+            updateProgress();
+        }
+
+        function handleAnswer(selectedIndex, clickedButton) {
+            if (isQuestionAnswered) return;
+
+            isQuestionAnswered = true;
+            nextButton.disabled = false;
+            skipButton.classList.add('hidden');
+
+            const currentQ = quizData[currentQuestionIndex];
+            const answerState = userAnswers[currentQuestionIndex];
+            const isCorrect = selectedIndex === currentQ.correctAnswer;
+            
+            // 1. Update state
+            answerState.answered = true;
+            answerState.selectedOptionIndex = selectedIndex;
+            answerState.status = isCorrect ? 'correct' : 'incorrect';
+
+            // 2. Visual Feedback
+            Array.from(optionsContainer.children).forEach((btn, index) => {
+                btn.classList.add('disabled', 'cursor-not-allowed');
+                btn.onclick = null;
+                
+                const letterSpan = btn.querySelector('.option-letter');
+
+                if (index === currentQ.correctAnswer) {
+                    btn.classList.add('correct');
+                    btn.classList.remove('bg-gray-100', 'hover:bg-gray-200', 'border-gray-200');
+                    letterSpan.classList.add('bg-green-600', 'text-white', 'border-green-600');
+                    if (index !== selectedIndex) {
+                        btn.querySelector('span:nth-child(2)').textContent += ' (Correct)';
+                    }
+                } 
+                else if (index === selectedIndex) {
+                    btn.classList.add('incorrect');
+                    btn.classList.remove('bg-gray-100', 'hover:bg-gray-200', 'border-gray-200');
+                    letterSpan.classList.add('bg-red-600', 'text-white', 'border-red-600');
+                    btn.querySelector('span:nth-child(2)').textContent += ' (Your Choice)';
+                } else {
+                    btn.classList.remove('bg-gray-100', 'hover:bg-gray-200');
+                    btn.classList.add('bg-gray-50', 'text-gray-400');
+                    letterSpan.classList.add('bg-gray-200', 'text-gray-400');
+                }
+            });
+
+            // 3. Text Feedback
+            feedbackMessage.classList.remove('hidden');
+            if (isCorrect) {
+                feedbackMessage.textContent = '✅ Correct! Well done. Move to the next question.';
+                feedbackMessage.classList.add('bg-green-50', 'text-green-700', 'border-green-400');
+                feedbackMessage.classList.remove('bg-red-50', 'text-red-700', 'border-red-400');
+            } else {
+                feedbackMessage.textContent = `❌ Incorrect. The correct answer was option ${indexToLetter(currentQ.correctAnswer)}.`;
+                feedbackMessage.classList.add('bg-red-50', 'text-red-700', 'border-red-400');
+                feedbackMessage.classList.remove('bg-green-50', 'text-green-700', 'border-green-400');
+            }
+            
+            updateProgress();
+        }
+
+        function nextQuestion() {
+            if (!isQuestionAnswered) {
+                if (!userAnswers[currentQuestionIndex].answered) {
+                    userAnswers[currentQuestionIndex].status = 'unanswered';
+                    userAnswers[currentQuestionIndex].answered = true;
+                }
+            }
+
+            currentQuestionIndex++;
+            renderQuestion();
+        }
+
+        function showDashboard() {
+            questionView.classList.add('hidden');
+            dashboardView.classList.remove('hidden');
+
+            // 1. Calculate Stats
+            const total = quizData.length;
+            const correct = userAnswers.filter(a => a.status === 'correct').length;
+            const incorrect = userAnswers.filter(a => a.status === 'incorrect').length;
+            const unanswered = userAnswers.filter(a => a.status === 'unanswered').length;
+
+            // 2. Populate Stat Cards
+            document.getElementById('stat-total').textContent = total;
+            document.getElementById('stat-correct').textContent = correct;
+            document.getElementById('stat-incorrect').textContent = incorrect;
+            document.getElementById('stat-unanswered').textContent = unanswered;
+
+            // 3. Create Review List
+            reviewList.innerHTML = '';
+            quizData.forEach((q, index) => {
+                const answer = userAnswers[index];
+                const status = answer.status;
+                
+                let bgColor, borderColor, icon, statusText, textColor;
+
+                if (status === 'correct') {
+                    bgColor = 'bg-green-100';
+                    borderColor = 'border-green-600';
+                    icon = '✅';
+                    statusText = 'Correct';
+                    textColor = 'text-green-800';
+                } else if (status === 'incorrect') {
+                    bgColor = 'bg-red-100';
+                    borderColor = 'border-red-600';
+                    icon = '❌';
+                    statusText = 'Incorrect';
+                    textColor = 'text-red-800';
+                } else {
+                    bgColor = 'bg-yellow-100';
+                    borderColor = 'border-yellow-600';
+                    icon = '➖';
+                    statusText = 'Skipped';
+                    textColor = 'text-yellow-800';
+                }
+
+                const selectedOptionText = answer.selectedOptionIndex !== null 
+                    ? `Your choice: Option ${indexToLetter(answer.selectedOptionIndex)}: ${q.options[answer.selectedOptionIndex]}` 
+                    : 'No choice made.';
+                
+                const correctOptionText = `Correct answer: Option ${indexToLetter(q.correctAnswer)}: ${q.options[q.correctAnswer]}`;
+
+                const reviewItem = document.createElement('div');
+                reviewItem.className = `${bgColor} p-4 sm:p-5 rounded-xl border-l-4 ${borderColor} shadow-sm`;
+                reviewItem.innerHTML = `
+                    <p class="font-bold text-base sm:text-lg text-gray-800 mb-2">${icon} Q${index + 1}: ${q.question}</p>
+                    <p class="text-sm font-semibold ${textColor} mb-2">Status: ${statusText}</p>
+                    <p class="text-xs sm:text-sm text-gray-600 mb-1">${selectedOptionText}</p>
+                    <p class="text-xs sm:text-sm text-green-700 font-medium">${correctOptionText}</p>
+                `;
+                reviewList.appendChild(reviewItem);
+            });
+        }
+
+        // --- Event Listener & Initialization ---
+        nextButton.addEventListener('click', nextQuestion);
+        skipButton.addEventListener('click', () => {
+            if (!isQuestionAnswered) {
+                userAnswers[currentQuestionIndex].status = 'unanswered';
+                userAnswers[currentQuestionIndex].answered = true;
+                nextQuestion();
+            }
+        });
+        
+        // Initial render
+        renderQuestion();
+    </script>
+</body>
+</html>
