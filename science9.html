@@ -1,0 +1,638 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"> 
+    <title>Interactive MCQ Quiz (Dynamic & Timed)</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Custom styles to enhance aesthetics and scalability */
+        body {
+            /* Fallback font */
+            font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif;
+            background-color: #f3f4f6; /* Light gray background for a clean feel (Tailwind: gray-100) */
+            /* Ensure smooth scaling of text on large/high-DPI screens */
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+        
+        /* Typography adjustments using viewport units for large screens */
+        @media screen and (min-width: 1024px) {
+            .scale-text-lg {
+                /* Font size scales between 1.5rem (desktop default) and 2vw (for very large displays) */
+                font-size: min(1.5rem, 2vw);
+            }
+        }
+
+        .card-shadow {
+            /* Softer, modern shadow for the main container */
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.08), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        }
+        .option-button {
+            transition: all 0.2s ease-in-out;
+            transform-origin: center;
+        }
+        .option-button:hover:not(.disabled) {
+            transform: translateY(-2px); /* Slight lift on hover */
+            box-shadow: 0 5px 15px -5px rgba(0, 0, 0, 0.15);
+        }
+        
+        /* State Indicators */
+        .correct {
+            background-color: #d1fae5; border-color: #059669; color: #065f46; font-weight: 600;
+        }
+        .incorrect {
+            background-color: #fee2e2; border-color: #ef4444; color: #991b1b; font-weight: 600;
+        }
+        .option-button:focus-visible { outline: 2px solid #4f46e5; outline-offset: 2px; }
+
+        /* Ensure smooth flow on mobile when content is long */
+        .responsive-body-wrapper {
+            /* Allows vertical centering on short content, but allows scroll on long content */
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 1.5rem; /* p-6 on all sides */
+        }
+        @media (max-width: 640px) {
+            .responsive-body-wrapper {
+                 /* Align to the top on tiny screens to maximize content visibility and prevent scrolling to see the start */
+                justify-content: flex-start;
+            }
+        }
+    </style>
+</head>
+<body class="bg-gray-100">
+
+    <!-- Wrapper ensures responsiveness on all devices -->
+    <div class="responsive-body-wrapper">
+        <div id="quiz-container" class="w-full max-w-2xl bg-white rounded-2xl card-shadow p-6 sm:p-10 lg:p-12">
+            <h1 class="text-2xl sm:text-3xl font-extrabold text-gray-900 mb-6 text-center tracking-tight">Chapter 9: Phenomenon Of light</h1>
+
+            <div class="mb-8">
+                <div class="flex justify-between text-xs sm:text-sm font-medium text-gray-500 mb-2">
+                    <span id="progress-text" class="text-indigo-600 font-bold">Question 1 of N</span>
+                    <span id="score-text">Score: 0 Correct</span>
+                </div>
+                <div class="w-full bg-indigo-100 rounded-full h-2 sm:h-3">
+                    <div id="progress-bar" class="bg-indigo-600 h-2 sm:h-3 rounded-full transition-all duration-500 ease-in-out shadow-lg" style="width: 0%"></div>
+                </div>
+            </div>
+
+            <div id="quiz-header" class="mb-6 flex justify-between items-center p-3 bg-gray-50 rounded-xl border border-gray-200 shadow-inner">
+                <span class="text-sm sm:text-base font-semibold text-gray-700">Time Taken:</span>
+                <span id="timer-display" class="text-lg sm:text-xl font-extrabold text-indigo-700">00:00</span>
+            </div>
+
+            <div id="question-view" class="space-y-6 sm:space-y-8">
+                <div class="p-6 sm:p-8 bg-white border border-gray-200 rounded-xl shadow-lg transition-transform duration-300">
+                    <p class="text-sm font-medium text-indigo-600 mb-2" id="question-number-text">Question 1</p>
+                    <p id="question-text" class="text-lg sm:text-xl lg:scale-text-lg font-bold text-gray-800">Question loading...</p> 
+                </div>
+                
+                <div id="options-container" class="space-y-3 sm:space-y-4">
+                </div>
+
+                <div id="feedback-message" class="hidden p-3 sm:p-4 rounded-xl text-sm sm:text-base font-semibold transition-all duration-300 border"></div>
+
+                <div class="flex justify-between pt-4 sm:pt-6 border-t border-gray-100">
+                    <button id="skip-button"
+                            class="px-3 py-2 sm:px-4 sm:py-2 text-xs sm:text-sm text-gray-600 font-semibold rounded-lg hover:text-indigo-600 transition duration-150 ease-in-out">
+                        Skip for now
+                    </button>
+                    <button id="next-button" 
+                            class="px-6 py-2 sm:px-8 sm:py-3 bg-indigo-600 text-white font-semibold rounded-xl shadow-lg hover:bg-indigo-700 disabled:opacity-50 transition duration-150 ease-in-out transform hover:scale-[1.01]"
+                            disabled>
+                        Next Question
+                    </button>
+                </div>
+            </div>
+
+            <div id="dashboard-view" class="hidden p-0">
+                <h2 class="text-xl sm:text-2xl font-bold text-gray-800 mb-4 text-center">Quiz Complete!</h2>
+                <p class="text-center text-lg text-green-700 font-extrabold mb-8">Total Time Taken: <span id="final-time">00:00</span></p>
+                
+                <div class="grid grid-cols-2 gap-4 md:grid-cols-4 md:gap-6 text-center mb-10">
+                    <div class="p-4 sm:p-5 bg-blue-50 rounded-xl shadow-md border border-blue-200">
+                        <p class="text-3xl sm:text-4xl font-extrabold text-blue-600" id="stat-total">0</p>
+                        <p class="text-xs sm:text-sm text-gray-600 mt-1">Total</p>
+                    </div>
+                    <div class="p-4 sm:p-5 bg-green-50 rounded-xl shadow-md border border-green-200">
+                        <p class="text-3xl sm:text-4xl font-extrabold text-green-600" id="stat-correct">0</p>
+                        <p class="text-xs sm:text-sm text-gray-600 mt-1">Correct</p>
+                    </div>
+                    <div class="p-4 sm:p-5 bg-red-50 rounded-xl shadow-md border border-red-200">
+                        <p class="text-3xl sm:text-4xl font-extrabold text-red-600" id="stat-incorrect">0</p>
+                        <p class="text-xs sm:text-sm text-gray-600 mt-1">Incorrect</p>
+                    </div>
+                    <div class="p-4 sm:p-5 bg-yellow-50 rounded-xl shadow-md border border-yellow-200">
+                        <p class="text-3xl sm:text-4xl font-extrabold text-yellow-600" id="stat-unanswered">0</p>
+                        <p class="text-xs sm:text-sm text-gray-600 mt-1">Skipped</p>
+                    </div>
+                </div>
+
+                <div class="mt-8">
+                    <h3 class="text-lg sm:text-xl font-bold text-gray-700 mb-4">Review Your Quiz</h3>
+                    <div id="review-list" class="space-y-4">
+                    </div>
+                </div>
+
+                <button onclick="window.location.reload()" 
+                        class="mt-8 sm:mt-10 w-full px-8 py-3 sm:py-4 bg-indigo-600 text-white font-bold text-base sm:text-lg rounded-xl shadow-lg hover:bg-indigo-700 transition duration-200 ease-in-out transform hover:scale-[1.01]">
+                    Restart Quiz
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- Quiz Data Structure (You can add any number of questions here) ---
+        // NOTE: The 'correctAnswer' index is based on the original unshuffled 'options' array.
+        const originalQuizData = [
+    {
+        "question": "What is the speed of light?",
+        "options": ["300 km/s", "3,000 km/s", "30,000 km/s", "300,000 km/s"],
+        "correctAnswer": 3
+    },
+    {
+        "question": "How does light travel?",
+        "options": ["In curved lines", "In straight lines", "In zigzag patterns", "In circular paths"],
+        "correctAnswer": 1
+    },
+    {
+        "question": "What is the straight line path along which light travels called?",
+        "options": ["Light beam", "Light ray", "Light path", "Light track"],
+        "correctAnswer": 1
+    },
+    {
+        "question": "In the three-hole experiment, why couldn't you see the candle flame when one board was displaced?",
+        "options": ["Light became dim", "Light traveled in curves", "Light couldn't travel in zigzag path", "The candle went out"],
+        "correctAnswer": 2
+    },
+    {
+        "question": "What is the ultimate source of all light on Earth?",
+        "options": ["Electric bulbs", "Stars", "Sun", "Fireflies"],
+        "correctAnswer": 2
+    },
+
+    // --- LESSON 3: HOW DO WE SEE? (Q6-Q10) ---
+    {
+        "question": "Why can't we see anything in a completely dark room?",
+        "options": ["Our eyes don't work in dark", "No light to reflect from objects", "Objects become invisible", "Our brain stops processing"],
+        "correctAnswer": 1
+    },
+    {
+        "question": "What are objects that produce their own light called?",
+        "options": ["Non-luminous objects", "Luminous objects", "Reflective objects", "Transparent objects"],
+        "correctAnswer": 1
+    },
+    {
+        "question": "Which of these is a luminous object?",
+        "options": ["Moon", "Book", "Electric bulb", "Table"],
+        "correctAnswer": 2
+    },
+    {
+        "question": "How do we see non-luminous objects?",
+        "options": ["They emit light", "They reflect light", "They absorb light", "They produce light"],
+        "correctAnswer": 1
+    },
+    {
+        "question": "Why do black objects appear black?",
+        "options": ["They reflect all light", "They absorb all light", "They emit black light", "They are transparent"],
+        "correctAnswer": 1
+    },
+
+    // --- LESSONS 4-5: REFLECTION AND ABSORPTION OF LIGHT (Q11-Q15) ---
+    {
+        "question": "What happens when light returns after hitting a surface?",
+        "options": ["Absorption", "Reflection", "Refraction", "Transmission"],
+        "correctAnswer": 1
+    },
+    {
+        "question": "What type of reflection occurs from smooth, polished surfaces?",
+        "options": ["Diffused reflection", "Irregular reflection", "Regular reflection", "Scattered reflection"],
+        "correctAnswer": 2
+    },
+    {
+        "question": "Which surface reflects light the most?",
+        "options": ["Rough wood", "Paper", "Plastic plate", "Mirror"],
+        "correctAnswer": 3
+    },
+    {
+        "question": "What happens when light is absorbed by an object?",
+        "options": ["It returns to source", "It passes through", "It doesn't return", "It changes color"],
+        "correctAnswer": 2
+    },
+    {
+        "question": "Which type of reflection has parallel incident rays but non-parallel reflected rays?",
+        "options": ["Regular reflection", "Diffused reflection", "Direct reflection", "Focused reflection"],
+        "correctAnswer": 1
+    },
+
+    // --- LESSONS 6-7: LAW OF REFLECTION (Q16-Q20) ---
+    {
+        "question": "What is the angle between incident ray and normal called?",
+        "options": ["Angle of reflection", "Angle of incidence", "Reflection angle", "Normal angle"],
+        "correctAnswer": 1
+    },
+    {
+        "question": "According to law of reflection, angle of incidence equals:",
+        "options": ["Angle of refraction", "Angle of reflection", "90 degrees", "45 degrees"],
+        "correctAnswer": 1
+    },
+    {
+        "question": "What is the line perpendicular to the reflecting surface at the point of incidence called?",
+        "options": ["Incident line", "Reflected line", "Normal", "Vertical"],
+        "correctAnswer": 2
+    },
+    {
+        "question": "If angle of incidence is $30^\\circ$, what is angle of reflection?",
+        "options": ["$15^\\circ$", "$30^\\circ$", "$45^\\circ$", "$60^\\circ$"],
+        "correctAnswer": 1
+    },
+    {
+        "question": "The bouncing back of light follows similar principles as:",
+        "options": ["A ball bouncing off wall", "Water flowing downhill", "Sound traveling", "Heat transferring"],
+        "correctAnswer": 0
+    },
+
+    // --- LESSON 8: IMAGE FORMATION BY MIRROR (Q21-Q25) ---
+    {
+        "question": "What is the size of image formed by plane mirror compared to object?",
+        "options": ["Smaller", "Larger", "Same size", "Distorted"],
+        "correctAnswer": 2
+    },
+    {
+        "question": "If you stand 2 meters from a plane mirror, how far is your image behind the mirror?",
+        "options": ["1 meter", "2 meters", "3 meters", "4 meters"],
+        "correctAnswer": 1
+    },
+    {
+        "question": "What is lateral inversion?",
+        "options": ["Top-bottom reversal", "Left-right reversal", "Size change", "Color change"],
+        "correctAnswer": 1
+    },
+    {
+        "question": "When you raise your right hand in front of mirror, which hand does image raise?",
+        "options": ["Right hand", "Left hand", "Both hands", "No hand"],
+        "correctAnswer": 1
+    },
+    {
+        "question": "What happens to image when you move closer to mirror?",
+        "options": ["It moves away", "It moves closer", "It disappears", "It becomes smaller"],
+        "correctAnswer": 1
+    },
+
+    // --- LESSONS 9-10: OPTICAL PHENOMENA AND PERISCOPE (Q26-Q30) ---
+    {
+        "question": "What optical instrument uses two mirrors to see over obstacles?",
+        "options": ["Telescope", "Microscope", "Periscope", "Kaleidoscope"],
+        "correctAnswer": 2
+    },
+    {
+        "question": "At what angle are mirrors placed in a periscope?",
+        "options": ["$30^\\circ$", "$45^\\circ$", "$60^\\circ$", "$90^\\circ$"],
+        "correctAnswer": 1
+    },
+    {
+        "question": "Where are periscopes commonly used?",
+        "options": ["In airplanes", "In submarines", "In cars", "In trains"],
+        "correctAnswer": 1
+    },
+    {
+        "question": "How many reflections occur in a simple periscope?",
+        "options": ["One", "Two", "Three", "Four"],
+        "correctAnswer": 1
+    },
+    {
+        "question": "What principle does periscope work on?",
+        "options": ["Refraction of light", "Absorption of light", "Reflection of light", "Dispersion of light"],
+        "correctAnswer": 2
+    }
+        ];
+
+        // --- Global State ---
+        let currentQuestionIndex = 0;
+        let quizData = []; // This will hold the shuffled and prepared questions
+        let userAnswers = [];
+        let isQuestionAnswered = false;
+
+        // Timer variables
+        let startTime = 0;
+        let endTime = 0;
+        let timerInterval = null;
+
+        // --- DOM Elements ---
+        const questionText = document.getElementById('question-text');
+        const questionNumberText = document.getElementById('question-number-text');
+        const optionsContainer = document.getElementById('options-container');
+        const feedbackMessage = document.getElementById('feedback-message');
+        const nextButton = document.getElementById('next-button');
+        const skipButton = document.getElementById('skip-button');
+        const questionView = document.getElementById('question-view');
+        const dashboardView = document.getElementById('dashboard-view');
+        const progressBar = document.getElementById('progress-bar');
+        const progressText = document.getElementById('progress-text');
+        const scoreText = document.getElementById('score-text');
+        const reviewList = document.getElementById('review-list');
+        const timerDisplay = document.getElementById('timer-display');
+        const finalTimeDisplay = document.getElementById('final-time');
+
+        // --- Utility Functions ---
+
+        /**
+         * Shuffles an array in place using the Fisher-Yates (Knuth) algorithm.
+         */
+        function shuffleArray(array) {
+            for (let i = array.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [array[i], array[j]] = [array[j], array[i]];
+            }
+        }
+
+        /**
+         * Formats seconds into MM:SS string.
+         */
+        function formatTime(seconds) {
+            const minutes = Math.floor(seconds / 60);
+            const remainingSeconds = Math.floor(seconds % 60);
+            return `${String(minutes).padStart(2, '0')}:${String(remainingSeconds).padStart(2, '0')}`;
+        }
+
+        // --- Timer Functions ---
+
+        function startTimer() {
+            startTime = Date.now();
+            timerInterval = setInterval(() => {
+                const elapsedSeconds = (Date.now() - startTime) / 1000;
+                timerDisplay.textContent = formatTime(elapsedSeconds);
+            }, 1000);
+        }
+
+        function stopTimer() {
+            clearInterval(timerInterval);
+            endTime = Date.now();
+            const totalTimeSeconds = (endTime - startTime) / 1000;
+            return formatTime(totalTimeSeconds);
+        }
+
+        // --- Core Quiz Logic ---
+
+        function indexToLetter(index) {
+            return String.fromCharCode(65 + index);
+        }
+
+        /**
+         * Initializes the quiz: shuffles questions, shuffles options for each question,
+         * and updates the correct answer index dynamically.
+         */
+        function initializeQuiz() {
+            // 1. Create a deep copy and shuffle questions
+            quizData = JSON.parse(JSON.stringify(originalQuizData));
+            shuffleArray(quizData);
+
+            // 2. Prepare userAnswers array
+            userAnswers = quizData.map(() => ({
+                status: 'unanswered',
+                selectedOptionIndex: null,
+                answered: false,
+            }));
+
+            // 3. Shuffle options for each question and update correctAnswer index
+            quizData.forEach(q => {
+                const originalCorrectOption = q.options[q.correctAnswer];
+                
+                // Group options with their original index for tracking
+                const indexedOptions = q.options.map((option, index) => ({
+                    option,
+                    isCorrect: index === q.correctAnswer
+                }));
+
+                shuffleArray(indexedOptions);
+
+                // Update the question object with shuffled options and new correct index
+                q.options = indexedOptions.map(item => item.option);
+                q.correctAnswer = indexedOptions.findIndex(item => item.isCorrect);
+
+                // Store the original correct option text for dashboard review clarity (optional but useful)
+                q.originalCorrectOption = originalCorrectOption;
+            });
+
+            // 4. Start the timer
+            startTimer();
+
+            // 5. Render the first question
+            renderQuestion();
+
+             // Update total question count in the header
+            document.querySelector('h1').textContent = `Chapter 9: Phenomenon Of light(${quizData.length} Questions)`;
+        }
+
+
+        function updateProgress() {
+            const total = quizData.length;
+            const answeredCount = userAnswers.filter(a => a.answered).length;
+            const correctCount = userAnswers.filter(a => a.status === 'correct').length;
+
+            const qNumber = currentQuestionIndex < total ? currentQuestionIndex + 1 : total;
+            progressText.textContent = `Question ${qNumber} of ${total}`;
+            scoreText.textContent = `Score: ${correctCount} Correct`;
+
+            const progressPercentage = (answeredCount / total) * 100;
+            progressBar.style.width = `${progressPercentage}%`;
+        }
+
+        function renderQuestion() {
+            if (currentQuestionIndex >= quizData.length) {
+                showDashboard();
+                return;
+            }
+
+            // Reset state for new question
+            isQuestionAnswered = false;
+            nextButton.disabled = true;
+            nextButton.textContent = 'Next Question';
+            skipButton.classList.remove('hidden');
+            feedbackMessage.classList.add('hidden');
+            feedbackMessage.textContent = '';
+            optionsContainer.innerHTML = '';
+            
+            const currentQ = quizData[currentQuestionIndex];
+            questionNumberText.textContent = `Question ${currentQuestionIndex + 1}`;
+            questionText.textContent = currentQ.question;
+            
+            currentQ.options.forEach((option, index) => {
+                const button = document.createElement('button');
+                const letter = indexToLetter(index);
+                
+                button.innerHTML = `
+                    <div class="flex items-start space-x-3">
+                        <span class="option-letter mt-0.5 flex-shrink-0 w-8 h-8 flex items-center justify-center text-sm font-bold border border-gray-400 text-gray-700 bg-white rounded-full">${letter}</span>
+                        <span class="flex-1 text-sm sm:text-base text-left">${option}</span> 
+                    </div>
+                `;
+                button.className = 'option-button w-full text-left p-4 bg-gray-100 text-gray-800 rounded-xl border border-gray-200 hover:bg-gray-200 transition duration-150 ease-in-out shadow-sm';
+                button.onclick = () => handleAnswer(index, button);
+                optionsContainer.appendChild(button);
+            });
+            
+            // If it's the last question, change the button text
+            if (currentQuestionIndex === quizData.length - 1) {
+                nextButton.textContent = 'Finish Quiz & See Results';
+            }
+
+            updateProgress();
+        }
+
+        function handleAnswer(selectedIndex, clickedButton) {
+            if (isQuestionAnswered) return;
+
+            isQuestionAnswered = true;
+            nextButton.disabled = false;
+            skipButton.classList.add('hidden');
+
+            const currentQ = quizData[currentQuestionIndex];
+            const answerState = userAnswers[currentQuestionIndex];
+            const isCorrect = selectedIndex === currentQ.correctAnswer;
+            
+            // 1. Update state
+            answerState.answered = true;
+            answerState.selectedOptionIndex = selectedIndex;
+            answerState.status = isCorrect ? 'correct' : 'incorrect';
+
+            // 2. Visual Feedback
+            Array.from(optionsContainer.children).forEach((btn, index) => {
+                btn.classList.add('disabled', 'cursor-not-allowed');
+                btn.onclick = null;
+                
+                const letterSpan = btn.querySelector('.option-letter');
+
+                if (index === currentQ.correctAnswer) {
+                    btn.classList.add('correct');
+                    btn.classList.remove('bg-gray-100', 'hover:bg-gray-200', 'border-gray-200');
+                    letterSpan.classList.add('bg-green-600', 'text-white', 'border-green-600');
+                    if (index !== selectedIndex) {
+                        btn.querySelector('span:nth-child(2)').textContent += ' (Correct)';
+                    }
+                } 
+                else if (index === selectedIndex) {
+                    btn.classList.add('incorrect');
+                    btn.classList.remove('bg-gray-100', 'hover:bg-gray-200', 'border-gray-200');
+                    letterSpan.classList.add('bg-red-600', 'text-white', 'border-red-600');
+                    btn.querySelector('span:nth-child(2)').textContent += ' (Your Choice)';
+                } else {
+                    btn.classList.remove('bg-gray-100', 'hover:bg-gray-200');
+                    btn.classList.add('bg-gray-50', 'text-gray-400');
+                    letterSpan.classList.add('bg-gray-200', 'text-gray-400');
+                }
+            });
+
+            // 3. Text Feedback
+            feedbackMessage.classList.remove('hidden');
+            if (isCorrect) {
+                feedbackMessage.textContent = '✅ Correct! Well done. Move to the next question.';
+                feedbackMessage.classList.add('bg-green-50', 'text-green-700', 'border-green-400');
+                feedbackMessage.classList.remove('bg-red-50', 'text-red-700', 'border-red-400');
+            } else {
+                feedbackMessage.textContent = `❌ Incorrect. The correct answer was option ${indexToLetter(currentQ.correctAnswer)}.`;
+                feedbackMessage.classList.add('bg-red-50', 'text-red-700', 'border-red-400');
+                feedbackMessage.classList.remove('bg-green-50', 'text-green-700', 'border-green-400');
+            }
+            
+            updateProgress();
+        }
+
+        function nextQuestion() {
+            // Only update answer status to 'answered' if the user hasn't selected an option but clicks 'Skip'
+            if (!isQuestionAnswered) {
+                // If user clicks Next without answering (only possible if they skipped via button), nothing changes.
+            }
+
+            currentQuestionIndex++;
+            renderQuestion();
+        }
+
+        function showDashboard() {
+            // Stop the timer and display final time
+            const finalTime = stopTimer();
+            finalTimeDisplay.textContent = finalTime;
+            
+            questionView.classList.add('hidden');
+            dashboardView.classList.remove('hidden');
+
+            // 1. Calculate Stats
+            const total = quizData.length;
+            const correct = userAnswers.filter(a => a.status === 'correct').length;
+            const incorrect = userAnswers.filter(a => a.status === 'incorrect').length;
+            const unanswered = userAnswers.filter(a => a.status === 'unanswered').length;
+
+            // 2. Populate Stat Cards
+            document.getElementById('stat-total').textContent = total;
+            document.getElementById('stat-correct').textContent = correct;
+            document.getElementById('stat-incorrect').textContent = incorrect;
+            document.getElementById('stat-unanswered').textContent = unanswered;
+
+            // 3. Create Review List
+            reviewList.innerHTML = '';
+            quizData.forEach((q, index) => {
+                const answer = userAnswers[index];
+                const status = answer.status;
+                
+                let bgColor, borderColor, icon, statusText, textColor;
+
+                if (status === 'correct') {
+                    bgColor = 'bg-green-100';
+                    borderColor = 'border-green-600';
+                    icon = '✅';
+                    statusText = 'Correct';
+                    textColor = 'text-green-800';
+                } else if (status === 'incorrect') {
+                    bgColor = 'bg-red-100';
+                    borderColor = 'border-red-600';
+                    icon = '❌';
+                    statusText = 'Incorrect';
+                    textColor = 'text-red-800';
+                } else {
+                    bgColor = 'bg-yellow-100';
+                    borderColor = 'border-yellow-600';
+                    icon = '➖';
+                    statusText = 'Skipped';
+                    textColor = 'text-yellow-800';
+                }
+
+                const selectedOptionText = answer.selectedOptionIndex !== null 
+                    ? `Your choice: Option ${indexToLetter(answer.selectedOptionIndex)}: ${q.options[answer.selectedOptionIndex]}` 
+                    : 'No choice made.';
+                
+                const correctOptionText = `Correct answer: Option ${indexToLetter(q.correctAnswer)}: ${q.options[q.correctAnswer]}`;
+
+                const reviewItem = document.createElement('div');
+                reviewItem.className = `${bgColor} p-4 sm:p-5 rounded-xl border-l-4 ${borderColor} shadow-sm`;
+                reviewItem.innerHTML = `
+                    <p class="font-bold text-base sm:text-lg text-gray-800 mb-2">${icon} Q${index + 1}: ${q.question}</p>
+                    <p class="text-sm font-semibold ${textColor} mb-2">Status: ${statusText}</p>
+                    <p class="text-xs sm:text-sm text-gray-600 mb-1">${selectedOptionText}</p>
+                    <p class="text-xs sm:text-sm text-green-700 font-medium">${correctOptionText}</p>
+                `;
+                reviewList.appendChild(reviewItem);
+            });
+        }
+
+        // --- Event Listener & Initialization ---
+        nextButton.addEventListener('click', nextQuestion);
+        skipButton.addEventListener('click', () => {
+            if (!isQuestionAnswered) {
+                // Manually mark as skipped
+                userAnswers[currentQuestionIndex].status = 'unanswered';
+                userAnswers[currentQuestionIndex].answered = true;
+                nextQuestion();
+            }
+        });
+        
+        // Start the quiz on page load
+        window.onload = initializeQuiz;
+    </script>
+</body>
+</html>
