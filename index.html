@@ -3,11 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>BGS Learning Portal</title>
+    <title>Academic Learning Portal</title>
     <style>
         /* CSS for Professional and Clean Design */
         :root {
             --primary-color: #28a745; /* Green for BGS focus */
+            --science-color: #007bff; /* Blue for Science */
             --secondary-color: #6c757d;
             --background-color: #f8f9fa;
             --card-background: #ffffff;
@@ -58,14 +59,13 @@
             to { opacity: 1; transform: translateY(0); }
         }
 
-        /* --- HOME PAGE / BGS Entry Point Styles --- */
+        /* --- HOME PAGE / Subject Entry Point Styles --- */
         #home-page {
             text-align: center;
         }
 
         .option-card {
             background-color: var(--card-background);
-            border: 2px solid var(--primary-color); /* Stronger border for emphasis */
             border-radius: var(--border-radius);
             padding: 50px;
             margin-top: 30px;
@@ -77,16 +77,31 @@
             box-sizing: border-box;
         }
 
+        .bgs-card {
+            border: 2px solid var(--primary-color);
+        }
+
+        .science-card {
+            border: 2px solid var(--science-color);
+        }
+
         .option-card:hover {
             transform: translateY(-8px);
             box-shadow: 0 12px 30px rgba(0, 0, 0, 0.15);
         }
 
         .option-card h3 {
-            color: var(--primary-color);
             margin-top: 20px;
             margin-bottom: 5px;
             font-size: 2em;
+        }
+
+        .bgs-card h3 {
+            color: var(--primary-color);
+        }
+
+        .science-card h3 {
+            color: var(--science-color);
         }
 
         .option-card p {
@@ -96,17 +111,24 @@
 
         .icon {
             font-size: 4em;
-            color: var(--primary-color);
             display: block;
         }
 
+        .bgs-icon {
+            color: var(--primary-color);
+        }
+
+        .science-icon {
+            color: var(--science-color);
+        }
+
         /* --- CHAPTERS PAGE Styles --- */
-        #chapters-page {
+        #chapters-page, #science-chapters-page {
             max-width: 800px;
             margin: 0 auto;
         }
 
-        #chapters-page h2 {
+        #chapters-page h2, #science-chapters-page h2 {
             text-align: center;
             color: var(--text-color);
         }
@@ -136,18 +158,36 @@
             color: var(--text-color);
             font-size: 1.2em;
             font-weight: 600;
-            border-left: 5px solid var(--primary-color);
             border-radius: var(--border-radius);
             transition: background-color 0.3s;
+        }
+
+        .bgs-chapter-link {
+            border-left: 5px solid var(--primary-color);
+        }
+
+        .science-chapter-link {
+            border-left: 5px solid var(--science-color);
         }
 
         .chapter-link:hover {
             background-color: #e6f5e9; /* Light green hover */
         }
 
+        .science-chapter-link:hover {
+            background-color: #e6f0ff; /* Light blue hover */
+        }
+
         .chapter-link span {
-            color: var(--primary-color);
             margin-right: 15px;
+        }
+
+        .bgs-chapter-link span {
+            color: var(--primary-color);
+        }
+
+        .science-chapter-link span {
+            color: var(--science-color);
         }
 
         .back-button {
@@ -177,9 +217,15 @@
         <div id="home-page" class="page-content">
             <h2>Select Subject</h2>
 
-            <div class="option-card" onclick="showPage('chapters-page')">
-                <span class="icon">🇧🇩</span>
+            <div class="option-card bgs-card" onclick="showPage('chapters-page')">
+                <span class="icon bgs-icon">🇧🇩</span>
                 <h3>Bangladesh & Global Studies (BGS)</h3>
+                <p>Click here to access chapters, notes, and exercises.</p>
+            </div>
+            
+            <div class="option-card science-card" onclick="showPage('science-chapters-page')">
+                <span class="icon science-icon">🔬</span>
+                <h3>Science</h3>
                 <p>Click here to access chapters, notes, and exercises.</p>
             </div>
         </div>
@@ -189,26 +235,70 @@
 
             <ul class="chapter-list">
                 <li class="chapter-item">
-                    <a href="8.html" class="chapter-link">
+                    <a href="8.html" class="chapter-link bgs-chapter-link">
                         <span>Chapter 8:</span> 
                     </a>
                 </li>
                 <li class="chapter-item">
-                    <a href="7.html" class="chapter-link">
+                    <a href="7.html" class="chapter-link bgs-chapter-link">
                         <span>Chapter 7:</span> 
                     </a>
                 </li>
                 <li class="chapter-item">
-                    <a href="6.html" class="chapter-link">
+                    <a href="6.html" class="chapter-link bgs-chapter-link">
                         <span>Chapter 6:</span> 
                     </a>
                 </li>
                 <li class="chapter-item">
-                    <a href="5.html" class="chapter-link">
+                    <a href="5.html" class="chapter-link bgs-chapter-link">
                         <span>Chapter 5:</span> 
                     </a>
                 </li>
-                </ul>
+            </ul>
+
+            <button class="back-button" onclick="showPage('home-page')">← Back to Main</button>
+        </div>
+        
+        <div id="science-chapters-page" class="page-content" style="display: none;">
+            <h2>🔬 Science Chapter Selection</h2>
+
+            <ul class="chapter-list">
+                <li class="chapter-item">
+                    <a href="science4.html" class="chapter-link science-chapter-link">
+                        <span>Chapter 4:</span> 
+                    </a>
+                </li>
+                <li class="chapter-item">
+                    <a href="science5.html" class="chapter-link science-chapter-link">
+                        <span>Chapter 5:</span> 
+                    </a>
+                </li>
+                <li class="chapter-item">
+                    <a href="science6.html" class="chapter-link science-chapter-link">
+                        <span>Chapter 6:</span> 
+                    </a>
+                </li>
+                <li class="chapter-item">
+                    <a href="science8.html" class="chapter-link science-chapter-link">
+                        <span>Chapter 8:</span> 
+                    </a>
+                </li>
+                <li class="chapter-item">
+                    <a href="science9.html" class="chapter-link science-chapter-link">
+                        <span>Chapter 9:</span> 
+                    </a>
+                </li>
+                <li class="chapter-item">
+                    <a href="science11.html" class="chapter-link science-chapter-link">
+                        <span>Chapter 11:</span> 
+                    </a>
+                </li>
+                <li class="chapter-item">
+                    <a href="science13.html" class="chapter-link science-chapter-link">
+                        <span>Chapter 13:</span> 
+                    </a>
+                </li>
+            </ul>
 
             <button class="back-button" onclick="showPage('home-page')">← Back to Main</button>
         </div>
@@ -235,6 +325,8 @@
                 headerTitle.innerHTML = '📚 Academic Learning Portal';
             } else if (pageId === 'chapters-page') {
                 headerTitle.innerHTML = '📖 Bangladesh & Global Studies';
+            } else if (pageId === 'science-chapters-page') {
+                headerTitle.innerHTML = '🔬 Science';
             }
         }
 
